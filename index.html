@@ -3,172 +3,1042 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3DXAP | Impressão 3D</title>
-
-  <!-- FAVICON -->
+  <title>3DXAP | Impressão 3D Criativa</title>
+  <meta name="description" content="3DXAP - Impressão 3D criativa com produtos decorativos, miniaturas e personalizados." />
   <link rel="icon" href="logo.png" />
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    body {
+    :root {
+      --rosa: #dd7fa5;
+      --rosa-claro: #fff3f8;
+      --rosa-borda: #f1cfdd;
+      --verde: #79c694;
+      --verde-escuro: #4d7c5f;
+      --verde-claro: #eef9f2;
+      --texto: #2f3240;
+      --texto-suave: #6f7280;
+      --branco: #ffffff;
+      --fundo: #fff9fc;
+      --sombra: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --sombra-suave: 0 6px 18px rgba(0, 0, 0, 0.05);
+      --radius: 28px;
+    }
+
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
       font-family: 'Poppins', sans-serif;
-      background: #fff8fb;
-      color: #333;
+      color: var(--texto);
+      background:
+        radial-gradient(circle at top left, #fff6fa 0%, #fffafd 45%, #f8fff9 100%);
+      line-height: 1.6;
     }
 
-    header {
-      background: linear-gradient(90deg, #f8a5c2, #a8e6b0);
-      padding: 20px;
-      text-align: center;
+    a {
+      text-decoration: none;
+      color: inherit;
     }
 
-    header img {
-      height: 120px; /* LOGO MAIOR */
+    img {
+      display: block;
+      max-width: 100%;
     }
 
     .container {
-      padding: 30px;
-      max-width: 1100px;
-      margin: auto;
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
     }
 
-    h2 {
-      color: #d66a95;
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(14px);
+      background: rgba(255, 250, 252, 0.88);
+      border-bottom: 1px solid rgba(221, 127, 165, 0.12);
     }
 
-    .grid {
+    .topbar-inner {
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 0;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo-wrap {
+      width: 90px;
+      height: 90px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #ffe9f2, #eefaf1);
+      overflow: hidden;
+      box-shadow: var(--sombra-suave);
+      border: 1px solid rgba(221, 127, 165, 0.14);
+      flex-shrink: 0;
+    }
+
+    .brand-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .brand-text small {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: var(--verde-escuro);
+      margin-bottom: 3px;
+    }
+
+    .brand-text strong {
+      display: block;
+      font-size: 30px;
+      line-height: 1;
+      color: var(--rosa);
+      font-weight: 800;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 14px;
+      border-radius: 999px;
+      transition: 0.2s ease;
+    }
+
+    .nav a:hover {
+      background: var(--rosa-claro);
+      color: var(--rosa);
+    }
+
+    .nav .nav-whats {
+      background: linear-gradient(135deg, var(--verde), #6ab484);
+      color: white;
+      box-shadow: var(--sombra-suave);
+    }
+
+    .hero {
+      padding: 42px 0 24px;
+    }
+
+    .hero-box {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 26px;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(255,255,255,0.88), rgba(255,255,255,0.72));
+      border: 1px solid rgba(221, 127, 165, 0.14);
+      border-radius: 34px;
+      padding: 34px;
+      box-shadow: var(--sombra);
     }
 
-    .card {
-      background: white;
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.05);
-      text-align: center;
+    .tag {
+      display: inline-block;
+      padding: 9px 15px;
+      border-radius: 999px;
+      background: var(--rosa-claro);
+      border: 1px solid var(--rosa-borda);
+      color: var(--rosa);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 16px;
     }
 
-    .emoji {
-      font-size: 60px;
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: 1.05;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      color: var(--texto-suave);
+      font-size: 17px;
+      max-width: 620px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 24px;
     }
 
     .btn {
-      display: block;
-      margin-top: 10px;
-      background: #7bcf9a;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 20px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 15px;
+      transition: 0.2s ease;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--rosa), #cf6f97);
       color: white;
-      padding: 10px;
-      border-radius: 10px;
-      text-decoration: none;
+      box-shadow: var(--sombra-suave);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      opacity: 0.96;
+    }
+
+    .btn-secondary {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      border: 1px solid rgba(121, 198, 148, 0.35);
+      box-shadow: var(--sombra-suave);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-1px);
+      opacity: 0.96;
+    }
+
+    .hero-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .hero-card {
+      background: white;
+      border-radius: 24px;
+      padding: 18px;
+      border: 1px solid rgba(221, 127, 165, 0.12);
+      box-shadow: var(--sombra-suave);
+    }
+
+    .hero-card .icon {
+      height: 72px;
+      width: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #ffe8f2, #eefaf1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 14px;
+    }
+
+    .hero-card h3 {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .hero-card p {
+      font-size: 13px;
+      color: var(--texto-suave);
+    }
+
+    .section {
+      padding: 28px 0 14px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .section-header small {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--verde-escuro);
+      margin-bottom: 6px;
+    }
+
+    .section-header h2 {
+      font-size: clamp(28px, 3vw, 40px);
+      line-height: 1.1;
+      color: var(--texto);
+    }
+
+    .section-header p {
+      color: var(--texto-suave);
+      font-size: 15px;
+      max-width: 700px;
+    }
+
+    .chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 10px 15px;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid rgba(221, 127, 165, 0.14);
+      box-shadow: var(--sombra-suave);
+      font-size: 13px;
       font-weight: 600;
     }
 
-    /* BOTÃO FLUTUANTE */
+    .chip.active {
+      background: linear-gradient(135deg, var(--rosa), #cf6f97);
+      color: white;
+      border-color: transparent;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .product-card {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(221, 127, 165, 0.12);
+      border-radius: 28px;
+      padding: 18px;
+      box-shadow: var(--sombra-suave);
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--sombra);
+    }
+
+    .product-image-wrap {
+      width: 100%;
+      height: 240px;
+      border-radius: 22px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #fff0f7, #f0faf3);
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+
+    .product-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .product-card:hover .product-image {
+      transform: scale(1.04);
+    }
+
+    .product-title {
+      font-size: 19px;
+      line-height: 1.25;
+      font-weight: 700;
+      margin-bottom: 8px;
+      min-height: 50px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .product-price {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--verde-escuro);
+      margin-bottom: 10px;
+      min-height: 28px;
+    }
+
+    .product-desc {
+      color: var(--texto-suave);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 66px;
+      margin-bottom: 16px;
+    }
+
+    .product-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(221, 127, 165, 0.1);
+    }
+
+    .meta-item small {
+      display: block;
+      font-size: 11px;
+      color: var(--texto-suave);
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .meta-item strong {
+      font-size: 14px;
+      color: var(--texto);
+    }
+
+    .product-card .btn {
+      width: 100%;
+      margin-top: auto;
+      padding: 13px 16px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--verde), #6bb686);
+      color: white;
+      box-shadow: none;
+    }
+
+    .product-card .btn:hover {
+      opacity: 0.95;
+    }
+
+    .highlight-box {
+      margin-top: 12px;
+      background: linear-gradient(135deg, #e58db1, #93ceaa);
+      color: white;
+      border-radius: 34px;
+      padding: 30px;
+      box-shadow: var(--sombra);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .step {
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 22px;
+      padding: 20px;
+    }
+
+    .step span {
+      display: inline-flex;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.2);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .step h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.92);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-top: 10px;
+    }
+
+    .box {
+      background: rgba(255,255,255,0.96);
+      border-radius: 28px;
+      padding: 26px;
+      border: 1px solid rgba(221, 127, 165, 0.12);
+      box-shadow: var(--sombra-suave);
+    }
+
+    .box.alt {
+      background: linear-gradient(135deg, #f5fdf7, #fff4f9);
+    }
+
+    .box h3 {
+      font-size: 28px;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+
+    .box p {
+      color: var(--texto-suave);
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+
+    .box ul {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .box li {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(221, 127, 165, 0.08);
+      font-size: 14px;
+    }
+
+    .instagram-section {
+      margin-top: 12px;
+    }
+
+    .instagram-box {
+      background: linear-gradient(135deg, #fff2f8, #f1fbf4);
+      border: 1px solid rgba(221, 127, 165, 0.14);
+      border-radius: 30px;
+      padding: 28px;
+      box-shadow: var(--sombra-suave);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .instagram-box h3 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .instagram-box p {
+      color: var(--texto-suave);
+      max-width: 680px;
+      font-size: 15px;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 22px;
+      margin-top: 10px;
+    }
+
+    .contact-info-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .contact-item {
+      background: rgba(255,255,255,0.96);
+      border-radius: 18px;
+      padding: 15px 16px;
+      border: 1px solid rgba(221, 127, 165, 0.1);
+      box-shadow: var(--sombra-suave);
+    }
+
+    .contact-item strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .contact-item span {
+      color: var(--texto-suave);
+      font-size: 14px;
+    }
+
+    .contact-box {
+      background: rgba(255,255,255,0.96);
+      border-radius: 30px;
+      padding: 24px;
+      border: 1px solid rgba(221, 127, 165, 0.12);
+      box-shadow: var(--sombra);
+    }
+
+    .contact-box h3 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .contact-box p {
+      color: var(--texto-suave);
+      margin-bottom: 18px;
+    }
+
+    .footer {
+      padding: 36px 0 48px;
+    }
+
+    .footer-box {
+      background: linear-gradient(135deg, #ffe9f2, #eefaf1);
+      border-radius: 30px;
+      padding: 26px;
+      text-align: center;
+      border: 1px solid rgba(221, 127, 165, 0.12);
+      box-shadow: var(--sombra-suave);
+    }
+
+    .footer-logo {
+      width: 96px;
+      height: 96px;
+      border-radius: 26px;
+      overflow: hidden;
+      margin: 0 auto 12px;
+      background: white;
+      box-shadow: var(--sombra-suave);
+      border: 1px solid rgba(221, 127, 165, 0.12);
+    }
+
+    .footer h3 {
+      font-size: 28px;
+      color: var(--rosa);
+      margin-bottom: 6px;
+    }
+
+    .footer p {
+      color: var(--texto-suave);
+      font-size: 14px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .footer-links a {
+      padding: 11px 15px;
+      border-radius: 999px;
+      background: white;
+      border: 1px solid rgba(221, 127, 165, 0.1);
+      box-shadow: var(--sombra-suave);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
     .whatsapp-float {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #25D366;
-      color: white;
+      right: 18px;
+      bottom: 18px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      width: 60px;
-      height: 60px;
+      background: #25d366;
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 30px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-      text-decoration: none;
-      z-index: 1000;
+      box-shadow: 0 10px 25px rgba(37, 211, 102, 0.35);
+      z-index: 999;
+      transition: transform 0.2s ease;
     }
 
     .whatsapp-float:hover {
-      transform: scale(1.1);
+      transform: scale(1.08);
     }
 
-    /* INSTAGRAM */
-    .instagram {
-      margin-top: 40px;
-      text-align: center;
+    @media (max-width: 1024px) {
+      .hero-box,
+      .two-col,
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .products-grid,
+      .steps {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
-    .insta-box {
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.05);
-    }
+    @media (max-width: 720px) {
+      .topbar-inner,
+      .brand,
+      .nav {
+        justify-content: center;
+      }
 
-    footer {
-      margin-top: 40px;
-      padding: 20px;
-      text-align: center;
-      background: #ffe4ef;
+      .brand {
+        width: 100%;
+      }
+
+      .brand-text {
+        text-align: center;
+      }
+
+      .hero-box {
+        padding: 24px;
+        border-radius: 26px;
+      }
+
+      .hero-cards,
+      .products-grid,
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .instagram-box {
+        padding: 22px;
+      }
+
+      .brand-logo-wrap {
+        width: 78px;
+        height: 78px;
+      }
+
+      .brand-text strong {
+        font-size: 26px;
+      }
+
+      .product-image-wrap {
+        height: 220px;
+      }
     }
   </style>
 </head>
-
 <body>
 
-<header>
-  <img src="logo.png" alt="3DXAP Logo">
-</header>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo.png" alt="Logo 3DXAP" class="brand-logo">
+        </div>
+        <div class="brand-text">
+          <small>Impressão 3D Criativa</small>
+          <strong>3DXAP</strong>
+        </div>
+      </div>
 
-<div class="container">
-  <h2>Produtos</h2>
-
-  <div class="grid">
-
-  <div class="card">
-  <img src="biscuit.png" alt="Miniaturas Biscuit" style="width:100%; border-radius:16px;">
-  <h3>Miniaturas para Pintar (Biscuit)</h3>
-  <p>R$ 3,00 a R$ 4,50</p>
-  <p style="font-size:13px; color:#666;">Peças miniaturas de 2,5 a 3,5 cm, ideais para biscuit.</p>
-  <a class="btn" href="https://wa.me/5549991167161?text=Olá,%20tenho%20interesse%20em%20miniaturas%20para%20Biscuit">Pedir</a>
-</div>
-
-<div class="card">
-  <img src="letreironome.png" alt="Letras Decorativas" style="width:100%; border-radius:16px;">
-  <h3>Letras com Nome</h3>
-  <p>R$ 55,00</p>
-  <p style="font-size:13px; color:#666;">Personalize o mundo de quem você ama com iniciais decorativas.</p>
-  <a class="btn" href="https://wa.me/5549991167161?text=Olá,%20tenho%20interesse%20em%20letras%20decorativas">Pedir</a>
-</div>
-
-<div class="card">
-  <img src="estatua.png" alt="Estátuas Decorativas" style="width:100%; border-radius:16px;">
-  <h3>Estátuas para Consultórios</h3>
-  <p>R$ 250,00 unidade</p>
-  <p style="font-size:13px; color:#666;">Ideal para profissionais que buscam um toque moderno e artístico.</p>
-  <a class="btn" href="https://wa.me/5549991167161?text=Olá,%20tenho%20interesse%20em%20estatuas%20decoração">Pedir</a>
-</div>
-
-  </div>
-
-  <!-- INSTAGRAM -->
-  <div class="instagram">
-    <h2>Nosso Instagram</h2>
-    <div class="insta-box">
-      <p>Siga a 3DXAP para ver novidades, peças novas e projetos personalizados 👇</p>
-      <a class="btn" href="https://www.instagram.com/paulacristina.pacheco/" target="_blank">Ver Instagram</a>
+      <nav class="nav">
+        <a href="#catalogo">Catálogo</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#instagram">Instagram</a>
+        <a href="#contato">Contato</a>
+        <a href="https://wa.me/5549991167161" target="_blank" class="nav-whats">WhatsApp</a>
+      </nav>
     </div>
-  </div>
+  </header>
 
-</div>
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-box">
+          <div>
+            <div class="tag">✨ Loja online da 3DXAP</div>
+            <h1>Impressão 3D com peças criativas, delicadas e feitas para encantar.</h1>
+            <p>
+              Conheça os produtos da 3DXAP: miniaturas, decoração, nomes personalizados e peças especiais feitas em impressão 3D com acabamento bonito e atendimento direto no WhatsApp.
+            </p>
 
-<footer>
-  WhatsApp: (49) 99116-7161<br>
-  3DXAP © 2026
-</footer>
+            <div class="hero-actions">
+              <a href="#catalogo" class="btn btn-primary">Ver produtos</a>
+              <a href="https://wa.me/5549991167161?text=Olá,%20vim%20pelo%20site%20da%203DXAP." target="_blank" class="btn btn-secondary">Falar no WhatsApp</a>
+            </div>
+          </div>
 
-<!-- BOTÃO FLUTUANTE -->
-<a class="whatsapp-float" href="https://wa.me/5549991167161" target="_blank">
-  💬
-</a>
+          <div class="hero-cards">
+            <div class="hero-card">
+              <div class="icon">🧸</div>
+              <h3>Miniaturas</h3>
+              <p>Peças pequenas e delicadas para biscuit, coleções e projetos criativos.</p>
+            </div>
+
+            <div class="hero-card">
+              <div class="icon">💖</div>
+              <h3>Personalizados</h3>
+              <p>Nomes, iniciais e peças com toque especial para presentear e decorar.</p>
+            </div>
+
+            <div class="hero-card">
+              <div class="icon">🏛️</div>
+              <h3>Decoração</h3>
+              <p>Itens decorativos modernos para ambientes profissionais e especiais.</p>
+            </div>
+
+            <div class="hero-card">
+              <div class="icon">📲</div>
+              <h3>Atendimento fácil</h3>
+              <p>Escolha seu produto e peça direto pelo WhatsApp com um clique.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="catalogo">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <small>Catálogo</small>
+            <h2>Produtos em destaque</h2>
+            <p>Veja alguns dos produtos da 3DXAP. As imagens estão padronizadas e os botões alinhados para deixar sua vitrine com aparência profissional.</p>
+          </div>
+
+          <div class="chips">
+            <div class="chip active">Todos</div>
+            <div class="chip">Miniaturas</div>
+            <div class="chip">Decoração</div>
+            <div class="chip">Personalizados</div>
+          </div>
+        </div>
+
+        <div class="products-grid">
+          <article class="product-card">
+            <div class="product-image-wrap">
+              <img src="biscuit.png" alt="Miniaturas para Pintar Biscuit" class="product-image">
+            </div>
+            <div class="product-title">Miniaturas para Pintar (Biscuit)</div>
+            <div class="product-price">R$ 3,00 a R$ 4,50</div>
+            <div class="product-desc">Peças miniaturas de 2,5 a 3,5 de tamanho, ideais para biscuit e trabalhos delicados.</div>
+
+            <div class="product-meta">
+              <div class="meta-item">
+                <small>Categoria</small>
+                <strong>Miniaturas</strong>
+              </div>
+              <div class="meta-item" style="text-align:right;">
+                <small>Material</small>
+                <strong>PLA</strong>
+              </div>
+            </div>
+
+            <a class="btn" href="https://wa.me/5549991167161?text=Olá,%20tenho%20interesse%20em%20miniaturas%20para%20Biscuit" target="_blank">Pedir</a>
+          </article>
+
+          <article class="product-card">
+            <div class="product-image-wrap">
+              <img src="letreironome.png" alt="Letras com Nome" class="product-image">
+            </div>
+            <div class="product-title">Letras com Nome</div>
+            <div class="product-price">R$ 55,00</div>
+            <div class="product-desc">Personalize o mundo de quem você ama com nossas iniciais decorativas e um toque criativo especial.</div>
+
+            <div class="product-meta">
+              <div class="meta-item">
+                <small>Categoria</small>
+                <strong>Decoração</strong>
+              </div>
+              <div class="meta-item" style="text-align:right;">
+                <small>Material</small>
+                <strong>PLA</strong>
+              </div>
+            </div>
+
+            <a class="btn" href="https://wa.me/5549991167161?text=Olá,%20tenho%20interesse%20em%20letras%20decorativas" target="_blank">Pedir</a>
+          </article>
+
+          <article class="product-card">
+            <div class="product-image-wrap">
+              <img src="estatua.png" alt="Estátuas para Consultórios" class="product-image">
+            </div>
+            <div class="product-title">Estátuas para Consultórios</div>
+            <div class="product-price">R$ 250,00 unidade</div>
+            <div class="product-desc">Ideal para presentear ou para profissionais que buscam um toque moderno e artístico na decoração do seu espaço.</div>
+
+            <div class="product-meta">
+              <div class="meta-item">
+                <small>Categoria</small>
+                <strong>Decoração</strong>
+              </div>
+              <div class="meta-item" style="text-align:right;">
+                <small>Material</small>
+                <strong>PLA Premium</strong>
+              </div>
+            </div>
+
+            <a class="btn" href="https://wa.me/5549991167161?text=Olá,%20tenho%20interesse%20em%20estatuas%20decoração" target="_blank">Pedir</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="como-funciona">
+      <div class="container">
+        <div class="highlight-box">
+          <div class="section-header" style="margin-bottom:0;">
+            <div>
+              <small style="color: rgba(255,255,255,0.85);">Como funciona</small>
+              <h2 style="color:white;">Do catálogo ao pedido</h2>
+              <p style="color: rgba(255,255,255,0.92);">Um jeito simples e rápido de transformar visitas em pedidos reais.</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <span>1</span>
+              <h3>Escolha o produto</h3>
+              <p>O cliente visualiza o catálogo e seleciona a peça que gostou.</p>
+            </div>
+
+            <div class="step">
+              <span>2</span>
+              <h3>Fale no WhatsApp</h3>
+              <p>Um clique no botão já abre a conversa com a mensagem pronta.</p>
+            </div>
+
+            <div class="step">
+              <span>3</span>
+              <h3>Feche o pedido</h3>
+              <p>Você combina os detalhes, personalização e entrega de forma prática.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="two-col">
+          <div class="box">
+            <small style="display:block; color: var(--verde-escuro); font-weight:700; text-transform:uppercase; letter-spacing:.16em; margin-bottom:8px; font-size:12px;">Personalizados</small>
+            <h3>Peças com a identidade da 3DXAP</h3>
+            <p>Além dos produtos prontos, a 3DXAP também trabalha com ideias especiais para presentear, decorar e personalizar ambientes.</p>
+
+            <ul>
+              <li>Nomes decorativos e iniciais</li>
+              <li>Miniaturas para biscuit</li>
+              <li>Peças exclusivas sob encomenda</li>
+              <li>Atendimento direto pelo WhatsApp</li>
+            </ul>
+          </div>
+
+          <div class="box alt">
+            <small style="display:block; color: var(--verde-escuro); font-weight:700; text-transform:uppercase; letter-spacing:.16em; margin-bottom:8px; font-size:12px;">Vantagens</small>
+            <h3>Um catálogo bonito e fácil de atualizar</h3>
+            <p>Esse modelo de loja deixa seus produtos bem apresentados e permite adicionar novas peças com foto, preço e botão rapidamente.</p>
+
+            <ul>
+              <li>Fotos reais dos produtos</li>
+              <li>Cards alinhados e profissionais</li>
+              <li>Botão “Pedir” sempre na mesma linha</li>
+              <li>Layout leve, bonito e responsivo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section instagram-section" id="instagram">
+      <div class="container">
+        <div class="instagram-box">
+          <div>
+            <small style="display:block; color: var(--verde-escuro); font-weight:700; text-transform:uppercase; letter-spacing:.16em; margin-bottom:8px; font-size:12px;">Instagram</small>
+            <h3>Acompanhe a 3DXAP no Instagram</h3>
+            <p>Mostre lançamentos, bastidores da produção, peças prontas e novidades para atrair mais clientes e fortalecer sua marca.</p>
+          </div>
+
+          <a class="btn btn-primary" href="https://instagram.com/paulacristina.pacheco" target="_blank">Ver Instagram</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="contato">
+      <div class="container">
+        <div class="contact-grid">
+          <div>
+            <div class="section-header" style="margin-bottom: 8px;">
+              <div>
+                <small>Contato</small>
+                <h2>Peça pelo WhatsApp</h2>
+                <p>Atendimento rápido para tirar dúvidas, enviar fotos, combinar detalhes e fechar pedidos personalizados.</p>
+              </div>
+            </div>
+
+            <div class="contact-info-list">
+              <div class="contact-item">
+                <strong>WhatsApp</strong>
+                <span>(49) 99116-7161</span>
+              </div>
+
+              <div class="contact-item">
+                <strong>Marca</strong>
+                <span>3DXAP</span>
+              </div>
+
+              <div class="contact-item">
+                <strong>Produtos</strong>
+                <span>Miniaturas, decoração e personalizados</span>
+              </div>
+
+              <div class="contact-item">
+                <strong>Material</strong>
+                <span>PLA e PLA Premium</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-box">
+            <h3>Solicite um orçamento</h3>
+            <p>Para encomendas personalizadas, envie sua ideia pelo WhatsApp e combine tamanho, estilo, cores e prazo.</p>
+
+            <a class="btn btn-primary" href="https://wa.me/5549991167161?text=Olá,%20vim%20pelo%20site%20da%203DXAP%20e%20quero%20solicitar%20um%20orçamento." target="_blank" style="width:100%;">
+              Solicitar orçamento no WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-box">
+        <div class="footer-logo">
+          <img src="logo.png" alt="Logo 3DXAP" style="width:100%; height:100%; object-fit:cover;">
+        </div>
+        <h3>3DXAP</h3>
+        <p>Impressão 3D criativa com peças delicadas, decorativas e personalizadas.</p>
+
+        <div class="footer-links">
+          <a href="#catalogo">Catálogo</a>
+          <a href="#instagram">Instagram</a>
+          <a href="#contato">Contato</a>
+          <a href="https://wa.me/5549991167161" target="_blank">WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <a class="whatsapp-float" href="https://wa.me/5549991167161?text=Olá,%20vim%20pelo%20site%20da%203DXAP." target="_blank" aria-label="WhatsApp">
+    💬
+  </a>
 
 </body>
 </html>
