@@ -3,1216 +3,169 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3DXAP | Impressão 3D Criativa</title>
-  <meta name="description" content="3DXAP - Impressão 3D criativa com peças decorativas, utilidades, bonequinhos e personalizados." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>3DXAP | Impressão 3D</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" href="logo.png" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --rosa: #e98bb2;
-      --rosa-claro: #fff1f7;
-      --rosa-borda: #f3c8da;
-      --verde: #8fc9a1;
-      --verde-claro: #eefaf1;
-      --verde-escuro: #4d7f5d;
-      --texto: #2f2f35;
-      --texto-suave: #6d6d78;
-      --branco: #ffffff;
-      --sombra: 0 10px 30px rgba(0, 0, 0, 0.08);
-      --sombra-suave: 0 6px 18px rgba(0, 0, 0, 0.05);
-      --radius: 24px;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
     body {
+      margin: 0;
       font-family: 'Poppins', sans-serif;
-      background:
-        radial-gradient(circle at top left, #fff5fa 0%, #fff8fb 45%, #f8fff9 100%);
-      color: var(--texto);
-      line-height: 1.6;
+      background: #fff8fb;
+      color: #333;
     }
 
-    a {
-      text-decoration: none;
+    header {
+      background: linear-gradient(90deg, #f8a5c2, #a8e6b0);
+      padding: 20px;
+      text-align: center;
     }
 
-    img {
-      max-width: 100%;
-      display: block;
+    header img {
+      height: 120px; /* LOGO MAIOR */
     }
 
     .container {
-      width: min(1180px, calc(100% - 32px));
-      margin: 0 auto;
+      padding: 30px;
+      max-width: 1100px;
+      margin: auto;
     }
 
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      backdrop-filter: blur(12px);
-      background: rgba(255, 250, 252, 0.86);
-      border-bottom: 1px solid rgba(233, 139, 178, 0.14);
+    h2 {
+      color: #d66a95;
     }
 
-    .topbar-inner {
-      min-height: 88px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      flex-wrap: wrap;
-      padding: 14px 0;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .brand-logo-wrap {
-      width: 74px;
-      height: 74px;
-      border-radius: 22px;
-      background: linear-gradient(135deg, #ffe8f2, #f0fbf3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--sombra-suave);
-      border: 1px solid rgba(233, 139, 178, 0.16);
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-
-    .brand-logo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .brand-text small {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--verde-escuro);
-      margin-bottom: 2px;
-    }
-
-    .brand-text strong {
-      display: block;
-      font-size: 26px;
-      line-height: 1.1;
-      color: var(--rosa);
-      font-weight: 800;
-    }
-
-    .nav {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .nav a {
-      color: var(--texto);
-      font-size: 14px;
-      font-weight: 600;
-      padding: 10px 14px;
-      border-radius: 999px;
-      transition: 0.2s ease;
-    }
-
-    .nav a:hover {
-      background: var(--rosa-claro);
-      color: var(--rosa);
-    }
-
-    .btn-whats-top {
-      background: linear-gradient(135deg, var(--verde), #79b88c);
-      color: var(--branco) !important;
-      box-shadow: var(--sombra-suave);
-    }
-
-    .btn-whats-top:hover {
-      opacity: 0.92;
-      background: linear-gradient(135deg, var(--verde), #79b88c) !important;
-      color: var(--branco) !important;
-    }
-
-    .hero {
-      padding: 58px 0 34px;
-    }
-
-    .hero-box {
+    .grid {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 28px;
-      align-items: center;
-      background: linear-gradient(135deg, rgba(255,255,255,0.82), rgba(255,255,255,0.66));
-      border: 1px solid rgba(233, 139, 178, 0.16);
-      border-radius: 34px;
-      padding: 34px;
-      box-shadow: var(--sombra);
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
     }
 
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--rosa-claro);
-      color: var(--rosa);
-      border: 1px solid var(--rosa-borda);
-      padding: 9px 14px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 16px;
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+      text-align: center;
     }
 
-    .hero h1 {
-      font-size: clamp(34px, 5vw, 58px);
-      line-height: 1.05;
-      margin-bottom: 16px;
-      font-weight: 800;
-      color: var(--texto);
-    }
-
-    .hero p {
-      font-size: 17px;
-      color: var(--texto-suave);
-      max-width: 620px;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      margin-top: 28px;
+    .emoji {
+      font-size: 60px;
     }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 14px 22px;
-      border-radius: 16px;
-      font-weight: 700;
-      font-size: 15px;
-      transition: 0.2s ease;
-      box-shadow: var(--sombra-suave);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--rosa), #d8709c);
-      color: var(--branco);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      opacity: 0.96;
-    }
-
-    .btn-secondary {
-      background: var(--verde-claro);
-      color: var(--verde-escuro);
-      border: 1px solid rgba(143, 201, 161, 0.4);
-    }
-
-    .btn-secondary:hover {
-      transform: translateY(-1px);
-      opacity: 0.96;
-    }
-
-    .hero-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin-top: 28px;
-    }
-
-    .stat {
-      background: var(--branco);
-      border-radius: 20px;
-      padding: 18px;
-      border: 1px solid rgba(233, 139, 178, 0.14);
-      box-shadow: var(--sombra-suave);
-    }
-
-    .stat strong {
       display: block;
-      font-size: 20px;
-      color: var(--rosa);
-      margin-bottom: 4px;
-    }
-
-    .stat span {
-      display: block;
-      color: var(--texto-suave);
-      font-size: 13px;
-    }
-
-    .hero-side {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .hero-card {
-      background: var(--branco);
-      border-radius: 24px;
-      padding: 18px;
-      box-shadow: var(--sombra-suave);
-      border: 1px solid rgba(143, 201, 161, 0.18);
-    }
-
-    .hero-card-visual {
-      min-height: 150px;
-      border-radius: 20px;
-      background: linear-gradient(135deg, #ffe8f2, #eefaf1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 58px;
-      margin-bottom: 14px;
-    }
-
-    .hero-card h3 {
-      font-size: 18px;
-      margin-bottom: 4px;
-    }
-
-    .hero-card p {
-      font-size: 13px;
-      color: var(--texto-suave);
-    }
-
-    .section {
-      padding: 30px 0 12px;
-    }
-
-    .section-header {
-      margin-bottom: 22px;
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
-    .section-header small {
-      display: block;
-      color: var(--verde-escuro);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      margin-bottom: 6px;
-      font-size: 12px;
-    }
-
-    .section-header h2 {
-      font-size: clamp(26px, 3vw, 38px);
-      color: var(--texto);
-      line-height: 1.1;
-    }
-
-    .section-header p {
-      color: var(--texto-suave);
-      max-width: 650px;
-      font-size: 15px;
-    }
-
-    .chips {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .chip {
-      padding: 10px 15px;
-      background: var(--branco);
-      border: 1px solid rgba(233, 139, 178, 0.18);
-      border-radius: 999px;
-      font-size: 13px;
+      margin-top: 10px;
+      background: #7bcf9a;
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      text-decoration: none;
       font-weight: 600;
-      color: var(--texto);
-      box-shadow: var(--sombra-suave);
     }
 
-    .chip.active {
-      background: linear-gradient(135deg, var(--rosa), #d8709c);
-      color: var(--branco);
-      border-color: transparent;
-    }
-
-    .products {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 22px;
-    }
-
-    .product {
-      background: rgba(255,255,255,0.94);
-      border: 1px solid rgba(233, 139, 178, 0.15);
-      border-radius: 28px;
-      padding: 18px;
-      box-shadow: var(--sombra-suave);
-      transition: 0.2s ease;
-    }
-
-    .product:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--sombra);
-    }
-
-    .product-visual {
-      min-height: 220px;
-      border-radius: 24px;
-      background: linear-gradient(135deg, #ffe8f2, #eefaf1);
+    /* BOTÃO FLUTUANTE */
+    .whatsapp-float {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #25D366;
+      color: white;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 78px;
-      position: relative;
-      overflow: hidden;
+      font-size: 30px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      text-decoration: none;
+      z-index: 1000;
     }
 
-    .badge {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      background: rgba(255,255,255,0.94);
-      color: var(--rosa);
-      border: 1px solid var(--rosa-borda);
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 7px 11px;
+    .whatsapp-float:hover {
+      transform: scale(1.1);
     }
 
-    .product h3 {
-      margin: 16px 0 4px;
-      font-size: 21px;
-    }
-
-    .category {
-      color: var(--texto-suave);
-      font-size: 13px;
-      margin-bottom: 10px;
-      font-weight: 500;
-    }
-
-    .product p {
-      color: var(--texto-suave);
-      font-size: 14px;
-      min-height: 66px;
-    }
-
-    .product-meta {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 14px;
-      margin-bottom: 16px;
-    }
-
-    .meta-block small {
-      display: block;
-      font-size: 12px;
-      color: var(--texto-suave);
-      margin-bottom: 2px;
-    }
-
-    .meta-block strong {
-      font-size: 15px;
-      color: var(--texto);
-    }
-
-    .price {
-      color: var(--verde-escuro) !important;
-      font-size: 18px !important;
-      font-weight: 800;
-      min-height: auto !important;
-    }
-
-    .product .btn {
-      width: 100%;
-      padding: 13px 18px;
-      border-radius: 14px;
-    }
-
-    .how-box {
-      margin-top: 10px;
-      background: linear-gradient(135deg, #e98bb2, #92ccb3);
-      color: var(--branco);
-      border-radius: 34px;
-      padding: 30px;
-      box-shadow: var(--sombra);
-    }
-
-    .how-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-      margin-top: 22px;
-    }
-
-    .how-item {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 24px;
-      padding: 22px;
-      backdrop-filter: blur(6px);
-    }
-
-    .how-item span {
-      display: inline-flex;
-      width: 34px;
-      height: 34px;
-      align-items: center;
-      justify-content: center;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.2);
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    .how-item h3 {
-      font-size: 19px;
-      margin-bottom: 8px;
-    }
-
-    .how-item p {
-      font-size: 14px;
-      color: rgba(255,255,255,0.9);
-    }
-
-    .split {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 22px;
-      margin-top: 10px;
-    }
-
-    .box {
-      background: rgba(255,255,255,0.94);
-      border: 1px solid rgba(233, 139, 178, 0.16);
-      border-radius: 30px;
-      padding: 26px;
-      box-shadow: var(--sombra-suave);
-    }
-
-    .box.alt {
-      background: linear-gradient(135deg, #f7fff9, #fff4f9);
-      border: 1px solid rgba(143, 201, 161, 0.22);
-    }
-
-    .box h3 {
-      font-size: 28px;
-      margin-bottom: 10px;
-      line-height: 1.15;
-    }
-
-    .box p {
-      color: var(--texto-suave);
-      margin-bottom: 16px;
-      font-size: 15px;
-    }
-
-    .box ul {
-      list-style: none;
-      display: grid;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .box li {
-      background: rgba(255,255,255,0.8);
-      border-radius: 14px;
-      padding: 11px 14px;
-      border: 1px solid rgba(233, 139, 178, 0.1);
-      font-size: 14px;
-    }
-
-    .mini-cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .mini-card {
-      background: var(--branco);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: var(--sombra-suave);
-      border: 1px solid rgba(143, 201, 161, 0.18);
-    }
-
-    .mini-card small {
-      color: var(--texto-suave);
-      display: block;
-      margin-bottom: 4px;
-      font-size: 12px;
-    }
-
-    .mini-card strong {
-      color: var(--rosa);
-      font-size: 16px;
-    }
-
-    .contact {
-      margin-top: 10px;
-      display: grid;
-      grid-template-columns: 0.95fr 1.05fr;
-      gap: 22px;
-    }
-
-    .contact-info .info-list {
-      display: grid;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .info-item {
-      background: rgba(255,255,255,0.96);
-      border-radius: 18px;
-      padding: 15px 16px;
-      border: 1px solid rgba(233, 139, 178, 0.13);
-      box-shadow: var(--sombra-suave);
-    }
-
-    .info-item strong {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--texto);
-      font-size: 14px;
-    }
-
-    .info-item span {
-      color: var(--texto-suave);
-      font-size: 14px;
-    }
-
-    .contact-form {
-      background: rgba(255,255,255,0.96);
-      border-radius: 30px;
-      padding: 24px;
-      border: 1px solid rgba(233, 139, 178, 0.16);
-      box-shadow: var(--sombra);
-    }
-
-    .field {
-      margin-bottom: 14px;
-    }
-
-    .field label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--texto);
-    }
-
-    .field input,
-    .field textarea {
-      width: 100%;
-      border: 1px solid #ead7e0;
-      background: #fffdfd;
-      border-radius: 16px;
-      padding: 14px 15px;
-      font-family: inherit;
-      font-size: 14px;
-      color: var(--texto);
-      outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .field input:focus,
-    .field textarea:focus {
-      border-color: var(--rosa);
-      box-shadow: 0 0 0 4px rgba(233, 139, 178, 0.12);
-    }
-
-    .field textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
-
-    .footer {
-      padding: 36px 0 48px;
-    }
-
-    .footer-box {
-      background: linear-gradient(135deg, #ffe7f1, #eefaf1);
-      border: 1px solid rgba(233, 139, 178, 0.12);
-      border-radius: 28px;
-      padding: 24px;
+    /* INSTAGRAM */
+    .instagram {
+      margin-top: 40px;
       text-align: center;
-      box-shadow: var(--sombra-suave);
     }
 
-    .footer-logo {
-      width: 88px;
-      height: 88px;
-      border-radius: 24px;
-      overflow: hidden;
-      margin: 0 auto 12px;
-      background: var(--branco);
-      box-shadow: var(--sombra-suave);
-      border: 1px solid rgba(233, 139, 178, 0.14);
+    .insta-box {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.05);
     }
 
-    .footer h3 {
-      color: var(--rosa);
-      font-size: 26px;
-      margin-bottom: 6px;
-    }
-
-    .footer p {
-      color: var(--texto-suave);
-      font-size: 14px;
-    }
-
-    .footer-links {
-      margin-top: 16px;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .footer-links a {
-      padding: 11px 16px;
-      border-radius: 999px;
-      background: var(--branco);
-      color: var(--texto);
-      font-size: 14px;
-      font-weight: 600;
-      border: 1px solid rgba(233, 139, 178, 0.12);
-      box-shadow: var(--sombra-suave);
-    }
-
-    .footer-links a:hover {
-      color: var(--rosa);
-    }
-
-    @media (max-width: 980px) {
-      .hero-box,
-      .split,
-      .contact {
-        grid-template-columns: 1fr;
-      }
-
-      .products,
-      .how-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .hero-side {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 680px) {
-      .topbar-inner {
-        justify-content: center;
-      }
-
-      .brand {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .brand-text {
-        text-align: center;
-      }
-
-      .nav {
-        justify-content: center;
-      }
-
-      .hero {
-        padding-top: 34px;
-      }
-
-      .hero-box {
-        padding: 22px;
-        border-radius: 26px;
-      }
-
-      .hero-stats,
-      .hero-side,
-      .products,
-      .how-grid,
-      .mini-cards {
-        grid-template-columns: 1fr;
-      }
-
-      .section-header {
-        align-items: start;
-      }
-
-      .product-visual {
-        min-height: 190px;
-        font-size: 66px;
-      }
-
-      .box,
-      .contact-form,
-      .how-box {
-        padding: 20px;
-        border-radius: 24px;
-      }
-
-      .brand-logo-wrap {
-        width: 66px;
-        height: 66px;
-      }
-
-      .brand-text strong {
-        font-size: 22px;
-      }
+    footer {
+      margin-top: 40px;
+      padding: 20px;
+      text-align: center;
+      background: #ffe4ef;
     }
   </style>
 </head>
+
 <body>
 
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <div class="brand">
-        <div class="brand-logo-wrap">
-          <img src="logo.png" alt="Logo 3DXAP" class="brand-logo">
-        </div>
-        <div class="brand-text">
-          <small>Impressão 3D Criativa</small>
-          <strong>3DXAP</strong>
-        </div>
-      </div>
+<header>
+  <img src="logo.png" alt="3DXAP Logo">
+</header>
 
-      <nav class="nav">
-        <a href="#catalogo">Catálogo</a>
-        <a href="#como-funciona">Como funciona</a>
-        <a href="#personalizados">Personalizados</a>
-        <a href="#contato">Contato</a>
-        <a href="https://wa.me/5549991167161" target="_blank" class="btn-whats-top">WhatsApp</a>
-      </nav>
+<div class="container">
+  <h2>Produtos</h2>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="emoji">🪴</div>
+      <h3>Vaso Decorativo</h3>
+      <p>R$ 39,90</p>
+      <a class="btn" href="https://wa.me/5549991167161?text=Quero%20o%20vaso">Pedir</a>
     </div>
-  </header>
 
-  <main>
-    <section class="hero">
-      <div class="container">
-        <div class="hero-box">
-          <div>
-            <div class="tag">✨ Catálogo online da 3DXAP</div>
-            <h1>Peças em impressão 3D com estilo, delicadeza e personalidade.</h1>
-            <p>
-              A 3DXAP cria bonequinhos, itens decorativos, utilidades e personalizados com uma identidade fofa, moderna e pronta para encantar seus clientes.
-            </p>
-
-            <div class="hero-actions">
-              <a href="#catalogo" class="btn btn-primary">Ver catálogo</a>
-              <a href="https://wa.me/5549991167161" target="_blank" class="btn btn-secondary">Pedir pelo WhatsApp</a>
-            </div>
-
-            <div class="hero-stats">
-              <div class="stat">
-                <strong>Catálogo</strong>
-                <span>Produtos prontos e novidades</span>
-              </div>
-              <div class="stat">
-                <strong>Personalizado</strong>
-                <span>Peças sob encomenda</span>
-              </div>
-              <div class="stat">
-                <strong>Atendimento</strong>
-                <span>Direto no WhatsApp</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="hero-side">
-            <div class="hero-card">
-              <div class="hero-card-visual">🪴</div>
-              <h3>Decoração</h3>
-              <p>Peças leves, bonitas e com visual moderno para presentear e decorar.</p>
-            </div>
-
-            <div class="hero-card">
-              <div class="hero-card-visual">🤖</div>
-              <h3>Bonequinhos</h3>
-              <p>Modelos criativos, fofos e ideais para coleção, presente ou encomenda.</p>
-            </div>
-
-            <div class="hero-card">
-              <div class="hero-card-visual">🎧</div>
-              <h3>Utilidades</h3>
-              <p>Suportes e organizadores com acabamento bonito e função prática.</p>
-            </div>
-
-            <div class="hero-card">
-              <div class="hero-card-visual">🔑</div>
-              <h3>Personalizados</h3>
-              <p>Chaveiros, lembranças e projetos especiais com a cara do cliente.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="catalogo">
-      <div class="container">
-        <div class="section-header">
-          <div>
-            <small>Catálogo</small>
-            <h2>Produtos e lançamentos</h2>
-            <p>Uma vitrine bonita e organizada para mostrar os itens da 3DXAP e facilitar os pedidos pelo WhatsApp.</p>
-          </div>
-
-          <div class="chips">
-            <div class="chip active">Todos</div>
-            <div class="chip">Decoração</div>
-            <div class="chip">Bonequinhos</div>
-            <div class="chip">Utilidades</div>
-            <div class="chip">Personalizados</div>
-          </div>
-        </div>
-
-        <div class="products">
-          <article class="product">
-            <div class="product-visual">
-              <span class="badge">Novo</span>
-              🪴
-            </div>
-            <h3>Vaso Decorativo</h3>
-            <div class="category">Decoração</div>
-            <p>Peça delicada para nichos, mesas e ambientes internos com acabamento bonito e leve.</p>
-
-            <div class="product-meta">
-              <div class="meta-block">
-                <small>Material</small>
-                <strong>PLA</strong>
-              </div>
-              <div class="meta-block" style="text-align:right;">
-                <small>Preço</small>
-                <div class="price">R$ 39,90</div>
-              </div>
-            </div>
-
-            <a class="btn btn-primary" target="_blank" href="https://wa.me/5549991167161?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Vaso%20Decorativo.">
-              Pedir no WhatsApp
-            </a>
-          </article>
-
-          <article class="product">
-            <div class="product-visual">
-              <span class="badge">Destaque</span>
-              🤖
-            </div>
-            <h3>Bonequinho 3D</h3>
-            <div class="category">Bonequinhos</div>
-            <p>Modelo fofo e criativo para coleção, presente personalizado ou decoração de mesa.</p>
-
-            <div class="product-meta">
-              <div class="meta-block">
-                <small>Material</small>
-                <strong>PLA / Resina</strong>
-              </div>
-              <div class="meta-block" style="text-align:right;">
-                <small>Preço</small>
-                <div class="price">R$ 29,90</div>
-              </div>
-            </div>
-
-            <a class="btn btn-primary" target="_blank" href="https://wa.me/5549991167161?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Bonequinho%203D.">
-              Pedir no WhatsApp
-            </a>
-          </article>
-
-          <article class="product">
-            <div class="product-visual">
-              🎧
-            </div>
-            <h3>Suporte para Headset</h3>
-            <div class="category">Utilidades</div>
-            <p>Ideal para setups e mesas organizadas, trazendo praticidade e um visual moderno.</p>
-
-            <div class="product-meta">
-              <div class="meta-block">
-                <small>Material</small>
-                <strong>PETG</strong>
-              </div>
-              <div class="meta-block" style="text-align:right;">
-                <small>Preço</small>
-                <div class="price">R$ 34,90</div>
-              </div>
-            </div>
-
-            <a class="btn btn-primary" target="_blank" href="https://wa.me/5549991167161?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Suporte%20para%20Headset.">
-              Pedir no WhatsApp
-            </a>
-          </article>
-
-          <article class="product">
-            <div class="product-visual">
-              🔑
-            </div>
-            <h3>Chaveiro Personalizado</h3>
-            <div class="category">Personalizados</div>
-            <p>Perfeito para brindes, lembranças, presentes e encomendas com nomes ou temas especiais.</p>
-
-            <div class="product-meta">
-              <div class="meta-block">
-                <small>Material</small>
-                <strong>PLA</strong>
-              </div>
-              <div class="meta-block" style="text-align:right;">
-                <small>Preço</small>
-                <div class="price">A partir de R$ 12,90</div>
-              </div>
-            </div>
-
-            <a class="btn btn-primary" target="_blank" href="https://wa.me/5549991167161?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Chaveiro%20Personalizado.">
-              Pedir no WhatsApp
-            </a>
-          </article>
-
-          <article class="product">
-            <div class="product-visual">
-              🧩
-            </div>
-            <h3>Organizador de Mesa</h3>
-            <div class="category">Utilidades</div>
-            <p>Uma opção funcional para guardar canetas, acessórios e pequenos objetos com charme.</p>
-
-            <div class="product-meta">
-              <div class="meta-block">
-                <small>Material</small>
-                <strong>PLA</strong>
-              </div>
-              <div class="meta-block" style="text-align:right;">
-                <small>Preço</small>
-                <div class="price">R$ 49,90</div>
-              </div>
-            </div>
-
-            <a class="btn btn-primary" target="_blank" href="https://wa.me/5549991167161?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Organizador%20de%20Mesa.">
-              Pedir no WhatsApp
-            </a>
-          </article>
-
-          <article class="product">
-            <div class="product-visual">
-              💖
-            </div>
-            <h3>Peça Sob Encomenda</h3>
-            <div class="category">Projetos especiais</div>
-            <p>Tem uma ideia diferente? A 3DXAP também faz peças personalizadas conforme seu pedido.</p>
-
-            <div class="product-meta">
-              <div class="meta-block">
-                <small>Produção</small>
-                <strong>Sob medida</strong>
-              </div>
-              <div class="meta-block" style="text-align:right;">
-                <small>Preço</small>
-                <div class="price">Sob consulta</div>
-              </div>
-            </div>
-
-            <a class="btn btn-primary" target="_blank" href="https://wa.me/5549991167161?text=Ol%C3%A1%2C%20quero%20fazer%20uma%20pe%C3%A7a%20sob%20encomenda.">
-              Solicitar orçamento
-            </a>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="como-funciona">
-      <div class="container">
-        <div class="how-box">
-          <div class="section-header" style="margin-bottom: 0;">
-            <div>
-              <small style="color: rgba(255,255,255,0.85);">Como funciona</small>
-              <h2 style="color: white;">Da sua ideia até a peça pronta</h2>
-              <p style="color: rgba(255,255,255,0.9);">Um processo simples para facilitar orçamentos, encomendas e pedidos pelo catálogo.</p>
-            </div>
-          </div>
-
-          <div class="how-grid">
-            <div class="how-item">
-              <span>1</span>
-              <h3>Escolha o produto</h3>
-              <p>O cliente pode selecionar um item do catálogo ou enviar uma ideia personalizada.</p>
-            </div>
-
-            <div class="how-item">
-              <span>2</span>
-              <h3>Defina os detalhes</h3>
-              <p>Cor, tamanho, material, acabamento e quantidade podem ser combinados no atendimento.</p>
-            </div>
-
-            <div class="how-item">
-              <span>3</span>
-              <h3>Receba seu pedido</h3>
-              <p>A produção é feita com cuidado e a entrega é combinada conforme a necessidade.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="personalizados">
-      <div class="container">
-        <div class="split">
-          <div class="box">
-            <small style="display:block; color: var(--verde-escuro); font-weight:700; text-transform:uppercase; letter-spacing:.16em; margin-bottom:8px; font-size:12px;">Serviços</small>
-            <h3>Peças personalizadas com a identidade da 3DXAP</h3>
-            <p>
-              Além dos produtos prontos, a 3DXAP também atende pedidos especiais para presentes, lembranças, decoração, brindes e coleções.
-            </p>
-
-            <ul>
-              <li>Bonequinhos e miniaturas personalizadas</li>
-              <li>Chaveiros e brindes sob encomenda</li>
-              <li>Peças decorativas e utilitárias</li>
-              <li>Atendimento direto e rápido pelo WhatsApp</li>
-            </ul>
-          </div>
-
-          <div class="box alt">
-            <small style="display:block; color: var(--verde-escuro); font-weight:700; text-transform:uppercase; letter-spacing:.16em; margin-bottom:8px; font-size:12px;">Lançamentos</small>
-            <h3>Espaço ideal para novidades e coleções</h3>
-            <p>
-              Essa área pode ser usada para destacar novos produtos, coleções temáticas, brindes de datas especiais e peças em promoção.
-            </p>
-
-            <div class="mini-cards">
-              <div class="mini-card">
-                <small>Coleção em destaque</small>
-                <strong>Bonequinhos criativos</strong>
-              </div>
-
-              <div class="mini-card">
-                <small>Mais pedido</small>
-                <strong>Chaveiros personalizados</strong>
-              </div>
-
-              <div class="mini-card">
-                <small>Estilo da marca</small>
-                <strong>Fofo e delicado</strong>
-              </div>
-
-              <div class="mini-card">
-                <small>Atendimento</small>
-                <strong>Rápido no WhatsApp</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="contato">
-      <div class="container">
-        <div class="contact">
-          <div class="contact-info">
-            <div class="section-header" style="margin-bottom: 8px;">
-              <div>
-                <small>Contato</small>
-                <h2>Receba pedidos pelo site</h2>
-                <p>O cliente pode escolher um item do catálogo ou entrar em contato para pedir algo totalmente personalizado.</p>
-              </div>
-            </div>
-
-            <div class="info-list">
-              <div class="info-item">
-                <strong>WhatsApp</strong>
-                <span>(49) 99116-7161</span>
-              </div>
-
-              <div class="info-item">
-                <strong>Marca</strong>
-                <span>3DXAP</span>
-              </div>
-
-              <div class="info-item">
-                <strong>Atendimento</strong>
-                <span>Pedidos por catálogo e encomendas personalizadas</span>
-              </div>
-
-              <div class="info-item">
-                <strong>Categoria principal</strong>
-                <span>Bonequinhos, utilidades, decoração e personalizados</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="contact-form">
-            <form action="https://wa.me/5549991167161" method="get" target="_blank">
-              <div class="field">
-                <label for="nome">Nome</label>
-                <input id="nome" name="text" type="text" placeholder="Seu nome">
-              </div>
-
-              <div class="field">
-                <label for="contato-cliente">Contato</label>
-                <input id="contato-cliente" type="text" placeholder="Seu WhatsApp ou e-mail">
-              </div>
-
-              <div class="field">
-                <label for="produto">Produto desejado</label>
-                <input id="produto" type="text" placeholder="Ex: bonequinho personalizado">
-              </div>
-
-              <div class="field">
-                <label for="detalhes">Detalhes do pedido</label>
-                <textarea id="detalhes" placeholder="Descreva quantidade, cor, tamanho e prazo..."></textarea>
-              </div>
-
-              <a class="btn btn-primary" href="https://wa.me/5549991167161?text=Ol%C3%A1%2C%20vim%20pelo%20site%20da%203DXAP%20e%20quero%20fazer%20um%20or%C3%A7amento." target="_blank" style="width:100%;">
-                Solicitar orçamento no WhatsApp
-              </a>
-            </form>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-box">
-        <div class="footer-logo">
-          <img src="logo.png" alt="Logo 3DXAP" style="width:100%; height:100%; object-fit:cover;">
-        </div>
-        <h3>3DXAP</h3>
-        <p>Impressão 3D criativa com peças delicadas, personalizadas e prontas para encantar.</p>
-
-        <div class="footer-links">
-          <a href="#catalogo">Catálogo</a>
-          <a href="#personalizados">Personalizados</a>
-          <a href="#contato">Contato</a>
-          <a href="https://wa.me/5549991167161" target="_blank">WhatsApp</a>
-        </div>
-      </div>
+    <div class="card">
+      <div class="emoji">🤖</div>
+      <h3>Bonequinho 3D</h3>
+      <p>R$ 29,90</p>
+      <a class="btn" href="https://wa.me/5549991167161?text=Quero%20o%20bonequinho">Pedir</a>
     </div>
-  </footer>
+
+    <div class="card">
+      <div class="emoji">🎧</div>
+      <h3>Suporte Headset</h3>
+      <p>R$ 34,90</p>
+      <a class="btn" href="https://wa.me/5549991167161?text=Quero%20o%20suporte">Pedir</a>
+    </div>
+
+  </div>
+
+  <!-- INSTAGRAM -->
+  <div class="instagram">
+    <h2>Nosso Instagram</h2>
+    <div class="insta-box">
+      <p>Siga a 3DXAP para ver novidades, peças novas e projetos personalizados 👇</p>
+      <a class="btn" href="https://instagram.com/" target="_blank">Ver Instagram</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  WhatsApp: (49) 99116-7161<br>
+  3DXAP © 2026
+</footer>
+
+<!-- BOTÃO FLUTUANTE -->
+<a class="whatsapp-float" href="https://wa.me/5549991167161" target="_blank">
+  💬
+</a>
 
 </body>
 </html>
