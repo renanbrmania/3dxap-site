@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3DXAP - Impressão 3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Poppins', sans-serif; background:#fff8fb; color:#333; }
+
+    header {
+      background: linear-gradient(90deg, #f8a5c2, #a8e6b0);
+      padding: 20px;
+      text-align: center;
+      color: white;
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .hero {
+      text-align:center;
+      padding:60px 20px;
+    }
+
+    .hero h1 {
+      font-size:40px;
+      color:#d66a95;
+    }
+
+    .hero p {
+      margin-top:10px;
+      color:#666;
+    }
+
+    .btn {
+      display:inline-block;
+      margin-top:20px;
+      background:#7bcf9a;
+      color:white;
+      padding:12px 25px;
+      border-radius:12px;
+      text-decoration:none;
+      font-weight:600;
+    }
+
+    .container { padding:40px 20px; max-width:1200px; margin:auto; }
+
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(250px,1fr));
+      gap:25px;
+    }
+
+    .card {
+      background:white;
+      border-radius:20px;
+      padding:20px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.05);
+      transition:0.2s;
+    }
+
+    .card:hover { transform: translateY(-5px); }
+
+    .emoji {
+      font-size:70px;
+      text-align:center;
+      margin-bottom:10px;
+    }
+
+    .card h3 { margin:10px 0; }
+
+    .price { color:#5fae7d; font-weight:600; }
+
+    .section-title {
+      margin-bottom:20px;
+      font-size:28px;
+      color:#d66a95;
+    }
+
+    footer {
+      margin-top:50px;
+      padding:30px;
+      text-align:center;
+      background:#ffe4ef;
+    }
+  </style>
+</head>
+<body>
+
+<header>3DXAP • Impressão 3D Criativa</header>
+
+<section class="hero">
+  <h1>Peças em Impressão 3D</h1>
+  <p>Decoração, utilidades, bonequinhos e personalizados</p>
+  <a class="btn" href="https://wa.me/5549991167161">Falar no WhatsApp</a>
+</section>
+
+<div class="container">
+  <h2 class="section-title">Produtos</h2>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="emoji">🪴</div>
+      <h3>Vaso Decorativo</h3>
+      <p class="price">R$ 39,90</p>
+      <a class="btn" href="https://wa.me/5549991167161">Pedir</a>
+    </div>
+
+    <div class="card">
+      <div class="emoji">🤖</div>
+      <h3>Bonequinho 3D</h3>
+      <p class="price">R$ 29,90</p>
+      <a class="btn" href="https://wa.me/5549991167161">Pedir</a>
+    </div>
+
+    <div class="card">
+      <div class="emoji">🎧</div>
+      <h3>Suporte Headset</h3>
+      <p class="price">R$ 34,90</p>
+      <a class="btn" href="https://wa.me/5549991167161">Pedir</a>
+    </div>
+
+    <div class="card">
+      <div class="emoji">🔑</div>
+      <h3>Chaveiro Personalizado</h3>
+      <p class="price">A partir de R$ 12,90</p>
+      <a class="btn" href="https://wa.me/5549991167161">Pedir</a>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p><strong>WhatsApp:</strong> (49) 99116-7161</p>
+  <p>3DXAP © 2026</p>
+</footer>
+
+</body>
+</html>
