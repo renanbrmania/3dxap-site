@@ -349,17 +349,21 @@
       background: linear-gradient(135deg, #fff0f7, #f0faf3);
       margin-bottom: 12px;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
     }
 
     .product-image {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       transition: transform 0.3s ease;
     }
 
     .product-card:hover .product-image {
-      transform: scale(1.04);
+      transform: scale(1.02);
     }
 
     .thumbs {
@@ -391,7 +395,8 @@
     .thumb img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      background: #fff;
     }
 
     .product-title {
@@ -912,7 +917,7 @@
           <div>
             <small style="display:block; color: var(--verde-escuro); font-weight:700; text-transform:uppercase; letter-spacing:.16em; margin-bottom:8px; font-size:12px;">Instagram</small>
             <h3>Acompanhe a 3DXAP no Instagram</h3>
-            <p>Mostre lançamentos, bastidores da produção, peças prontas e novidades para atrair mais clientes e fortalecer sua marca.</p>
+            <p>Veja novidades, bastidores da produção, peças prontas e inspirações no perfil oficial.</p>
           </div>
 
           <a class="btn btn-primary" href="https://instagram.com/paulacristina.pacheco" target="_blank">Ver Instagram</a>
@@ -1017,7 +1022,7 @@
         categoria: "Decoração",
         descricao: "Ideal para presentear ou para profissionais que buscam um toque moderno e artistico na decoração do seu espaço.",
         material: "PLA Premium",
-        imagens: ["estatua.png", "estatua2.png", "estatua3.png", "estatua4.png"],
+        imagens: ["estatua.png"],
         whatsapp: "Olá, tenho interesse em estatuas decoração"
       }
     ];
