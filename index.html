@@ -52,6 +52,10 @@
       max-width: 100%;
     }
 
+    button {
+      font-family: inherit;
+    }
+
     .container {
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
@@ -329,7 +333,6 @@
       box-shadow: var(--sombra-suave);
       display: flex;
       flex-direction: column;
-      min-height: 100%;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
@@ -344,7 +347,7 @@
       border-radius: 22px;
       overflow: hidden;
       background: linear-gradient(135deg, #fff0f7, #f0faf3);
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       flex-shrink: 0;
     }
 
@@ -357,6 +360,38 @@
 
     .product-card:hover .product-image {
       transform: scale(1.04);
+    }
+
+    .thumbs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      min-height: 58px;
+      align-items: flex-start;
+    }
+
+    .thumb {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      background: #fff;
+      cursor: pointer;
+      padding: 0;
+      box-shadow: var(--sombra-suave);
+      flex-shrink: 0;
+    }
+
+    .thumb.active {
+      border-color: var(--rosa);
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .product-title {
@@ -791,7 +826,7 @@
           <div>
             <small>Catálogo</small>
             <h2>Produtos em destaque</h2>
-            <p>Agora você só precisa preencher a lista de produtos e subir a imagem no GitHub. O site monta os cards automaticamente.</p>
+            <p>Agora você pode cadastrar cada produto com várias fotos. O site monta os cards e a galeria automaticamente.</p>
           </div>
 
           <div class="chips" id="categorias"></div>
@@ -808,27 +843,27 @@
             <div>
               <small style="color: rgba(255,255,255,0.85);">Como funciona</small>
               <h2 style="color:white;">Do catálogo ao pedido</h2>
-              <p style="color: rgba(255,255,255,0.92);">Um jeito simples e rápido de transformar visitas em pedidos reais.</p>
+              <p style="color: rgba(255,255,255,0.92);">Um jeito simples de subir imagens, preencher dados e publicar.</p>
             </div>
           </div>
 
           <div class="steps">
             <div class="step">
               <span>1</span>
-              <h3>Suba a imagem</h3>
-              <p>Você envia a foto do produto no GitHub com um nome simples.</p>
+              <h3>Suba as fotos</h3>
+              <p>Envie uma ou mais imagens para cada produto no GitHub.</p>
             </div>
 
             <div class="step">
               <span>2</span>
-              <h3>Preencha os dados</h3>
-              <p>Nome, preço, categoria, descrição, material e texto do WhatsApp.</p>
+              <h3>Preencha a lista</h3>
+              <p>Adicione os nomes dos arquivos dentro de <strong>imagens: [ ]</strong>.</p>
             </div>
 
             <div class="step">
               <span>3</span>
-              <h3>Salve o arquivo</h3>
-              <p>O site atualiza sozinho e o novo produto já aparece na loja.</p>
+              <h3>Salve e publique</h3>
+              <p>O site atualiza automaticamente na Vercel.</p>
             </div>
           </div>
         </div>
@@ -880,7 +915,7 @@
             <p>Mostre lançamentos, bastidores da produção, peças prontas e novidades para atrair mais clientes e fortalecer sua marca.</p>
           </div>
 
-          <a class="btn btn-primary" href="https://instagram.com/paulacristina.pacheco" target="_blank">Ver Instagram</a>
+          <a class="btn btn-primary" href="https://instagram.com/SEUINSTAGRAM" target="_blank">Ver Instagram</a>
         </div>
       </div>
     </section>
@@ -964,17 +999,8 @@
         categoria: "Miniaturas",
         descricao: "Peças miniaturas de 2,5 a 3,5 de tamanho, ideais para biscuit e trabalhos delicados.",
         material: "PLA",
-        imagem: "biscuit.png",
+        imagens: ["biscuit.png"],
         whatsapp: "Olá, tenho interesse em miniaturas para Biscuit"
-      },
-      {
-        nome: "Chaveiros Secret Stash",
-        preco: "R$ 19,90",
-        categoria: "Chaveiro",
-        descricao: "Toque de charme que faltava na sua bolsa ou mochila, unindo utilidade e moda em só item.",
-        material: "PLA",
-        imagem: "Chaveiros Secret Stash.png",
-        whatsapp: "Ola, tenho interesse em chaveiros personalizados"
       },
       {
         nome: "Letras com Nome",
@@ -982,7 +1008,7 @@
         categoria: "Decoração",
         descricao: "Personalize o mundo de quem você ama com nossas iniciais decorativas e um toque criativo especial.",
         material: "PLA",
-        imagem: "letreironome.png",
+        imagens: ["letreironome.png"],
         whatsapp: "Olá, tenho interesse em letras decorativas"
       },
       {
@@ -991,7 +1017,7 @@
         categoria: "Decoração",
         descricao: "Ideal para presentear ou para profissionais que buscam um toque moderno e artistico na decoração do seu espaço.",
         material: "PLA Premium",
-        imagem: "estatua.png",
+        imagens: ["estatua.png"],
         whatsapp: "Olá, tenho interesse em estatuas decoração"
       }
     ];
@@ -1017,6 +1043,20 @@
       });
     }
 
+    function criarMiniaturas(imagens, principalId) {
+      if (!imagens || imagens.length <= 1) return "";
+
+      return `
+        <div class="thumbs">
+          ${imagens.map((img, index) => `
+            <button class="thumb ${index === 0 ? 'active' : ''}" type="button" onclick="trocarImagem('${principalId}', this, '${img}')">
+              <img src="${img}" alt="Miniatura do produto">
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
     function renderizarProdutos() {
       productsGrid.innerHTML = "";
 
@@ -1024,16 +1064,19 @@
         ? produtos
         : produtos.filter(p => p.categoria === categoriaAtiva);
 
-      filtrados.forEach(produto => {
+      filtrados.forEach((produto, index) => {
         const card = document.createElement("article");
         card.className = "product-card";
 
         const mensagem = encodeURIComponent(produto.whatsapp);
+        const principalId = `produto-imagem-${index}`;
+        const fotoPrincipal = produto.imagens && produto.imagens.length ? produto.imagens[0] : "";
 
         card.innerHTML = `
           <div class="product-image-wrap">
-            <img src="${produto.imagem}" alt="${produto.nome}" class="product-image">
+            <img src="${fotoPrincipal}" alt="${produto.nome}" class="product-image" id="${principalId}">
           </div>
+          ${criarMiniaturas(produto.imagens, principalId)}
           <div class="product-title">${produto.nome}</div>
           <div class="product-price">${produto.preco}</div>
           <div class="product-desc">${produto.descricao}</div>
@@ -1052,6 +1095,15 @@
 
         productsGrid.appendChild(card);
       });
+    }
+
+    function trocarImagem(imagemId, botao, novaImagem) {
+      const img = document.getElementById(imagemId);
+      if (img) img.src = novaImagem;
+
+      const grupo = botao.parentElement;
+      grupo.querySelectorAll(".thumb").forEach(t => t.classList.remove("active"));
+      botao.classList.add("active");
     }
 
     criarCategorias();
