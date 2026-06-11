@@ -1004,7 +1004,7 @@
         categoria: "Porta Lata",
         descricao: "Porta lata personalizado com chaveiro.",
         material: "PLA",
-        imagens: ["portalata.png", "portalata2.png", "portalata3.png"],
+        imagens: ["portalata.webp", "portalata2.webp", "portalata3.webp"],
         whatsapp: "Olá, tenho interesse em Porta lata"
       },
       
@@ -1014,7 +1014,7 @@
         categoria: "Caixa",
         descricao: "Guarde suas figurinhas de forma segura e bem organizadas.",
         material: "PLA",
-        imagens: ["caixafigurinha.png", "caixafigurinha2.png"],
+        imagens: ["caixafigurinha.webp", "caixafigurinha2.webp"],
         whatsapp: "Olá, tenho interesse em Caixas figurinhas"
       },
       
@@ -1024,7 +1024,7 @@
         categoria: "Miniaturas",
         descricao: "Peças miniaturas de 2,5 a 3,5 de tamanho, ideais para biscuit e trabalhos delicados.",
         material: "PLA",
-        imagens: ["biscuit.png"],
+        imagens: ["biscuit.webp"],
         whatsapp: "Olá, tenho interesse em miniaturas para Biscuit"
       },
 
@@ -1034,7 +1034,7 @@
         categoria: "Chaveiro",
         descricao: "Toque de charme que faltava na sua bolsa ou mochila, unindo utilidade e moda em só item.",
         material: "PLA",
-        imagens: ["Chaveiros Secret Stash.png"],
+        imagens: ["chaveiros-secret-stash.webp"],
         whatsapp: "Olá, tenho interesse em chaveiros personalizados"
       },
 
@@ -1044,7 +1044,7 @@
         categoria: "Enfeites",
         descricao: "Porta retrato, porta Celular e um lindo enfeite de Tulipas.",
         material: "PLA",
-        imagens: ["kitmae.png"],
+        imagens: ["kitmae.webp"],
         whatsapp: "Olá, tenho interesse em kit mãe personalizados"
       },
 
@@ -1054,7 +1054,7 @@
         categoria: "Personalizados",
         descricao: "Kit presenteável para clientes, colaboradores e parceiros, com caneca personalizada, chaveiro porta-celular, chocolate premium ou sachê de café e embalagem com visor transparente e laço decorativo. Observação: o modelo da caneca pode variar conforme disponibilidade em estoque, mantendo a qualidade e a proposta do kit.",
         material: "Personalizado",
-        imagens: ["personalizado-dia-dos-pais.png"],
+        imagens: ["personalizado-dia-dos-pais.webp"],
         whatsapp: "Olá, tenho interesse no Kit Corporativo Personalizado"
       },
       
@@ -1064,7 +1064,7 @@
         categoria: "Decoração",
         descricao: "Personalize o mundo de quem você ama com nossas iniciais decorativas e um toque criativo especial.",
         material: "PLA",
-        imagens: ["letreironome.png"],
+        imagens: ["letreironome.webp"],
         whatsapp: "Olá, tenho interesse em letras decorativas"
       },
       {
@@ -1073,7 +1073,7 @@
         categoria: "Decoração",
         descricao: "Ideal para presentear ou para profissionais que buscam um toque moderno e artistico na decoração do seu espaço.",
         material: "PLA Premium",
-        imagens: ["estatua.png", "estatua2.png", "estatua3.png", "estatua4.png"],
+        imagens: ["estatua.webp", "estatua2.webp", "estatua3.webp", "estatua4.webp"],
         whatsapp: "Olá, tenho interesse em estatuas decoração"
       }
     ];
@@ -1106,7 +1106,7 @@
         <div class="thumbs">
           ${imagens.map((img, index) => `
             <button class="thumb ${index === 0 ? 'active' : ''}" type="button" onclick="trocarImagem('${principalId}', this, '${img}')">
-              <img src="${img}" alt="Miniatura do produto">
+              <img src="${img}" alt="Miniatura do produto" loading="lazy" decoding="async">
             </button>
           `).join("")}
         </div>
@@ -1130,7 +1130,7 @@
 
         card.innerHTML = `
           <div class="product-image-wrap">
-            <img src="${fotoPrincipal}" alt="${produto.nome}" class="product-image" id="${principalId}">
+            <img src="${fotoPrincipal}" alt="${produto.nome}" class="product-image" id="${principalId}" loading="lazy" decoding="async">
           </div>
           ${criarMiniaturas(produto.imagens, principalId)}
           <div class="product-title">${produto.nome}</div>
