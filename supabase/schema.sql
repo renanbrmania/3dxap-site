@@ -1,0 +1,34 @@
+-- Rode no SQL Editor do Supabase (projeto gratuito)
+-- Depois crie um bucket público chamado: uploads
+
+create table if not exists products (
+  id text primary key,
+  nome text not null,
+  preco text not null,
+  categoria text not null default '',
+  descricao text not null default '',
+  material text not null default 'PLA',
+  imagens jsonb not null default '[]'::jsonb,
+  whatsapp text not null default '',
+  ativo boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists testimonials (
+  id text primary key,
+  nome text not null,
+  texto text not null default '',
+  imagem text not null default '',
+  ativo boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- Políticas abertas para o painel simples (pode restringir depois com auth)
+alter table products enable row level security;
+alter table testimonials enable row level security;
+
+create policy "public read products" on products for select using (true);
+create policy "public write products" on products for all using (true) with check (true);
+
+create policy "public read testimonials" on testimonials for select using (true);
+create policy "public write testimonials" on testimonials for all using (true) with check (true);
