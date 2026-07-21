@@ -49,6 +49,13 @@ export async function loadContent(): Promise<SiteContent> {
     return loadLocalContent();
   }
 
+  // Primeira vez: nuvem vazia → sobe o catálogo inicial
+  if (products.length === 0) {
+    const seeded = structuredClone(seedContent);
+    await persistContent(seeded);
+    return seeded;
+  }
+
   return {
     updatedAt: new Date().toISOString(),
     products: products.map((row) => ({
