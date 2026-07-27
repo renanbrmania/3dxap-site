@@ -1,5 +1,6 @@
 import { type FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { QuoteBuilder } from "../components/QuoteBuilder";
 import { useContent } from "../lib/ContentContext";
 import type { Product, Testimonial } from "../lib/content";
 
@@ -43,7 +44,7 @@ export function AdminPage() {
 
   const [authed, setAuthed] = useState(() => sessionStorage.getItem(AUTH_KEY) === "1");
   const [password, setPassword] = useState("");
-  const [tab, setTab] = useState<"products" | "testimonials">("products");
+  const [tab, setTab] = useState<"products" | "testimonials" | "quotes">("products");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
   const [status, setStatus] = useState("");
@@ -140,7 +141,7 @@ export function AdminPage() {
     return (
       <div className="mx-auto flex min-h-screen w-[min(420px,calc(100%-1.5rem))] flex-col justify-center py-16">
         <h1 className="font-display text-4xl font-semibold text-ink">Painel 3DXAP</h1>
-        <p className="mt-2 text-sm text-muted">Área para cadastrar produtos e depoimentos.</p>
+        <p className="mt-2 text-sm text-muted">Área para cadastrar produtos, depoimentos e gerar orçamentos.</p>
         <form onSubmit={login} className="mt-8 space-y-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-rosa/10">
           <label className="block text-sm font-medium">
             Senha
@@ -205,7 +206,7 @@ export function AdminPage() {
 
         {status ? <p className="mb-4 text-sm font-medium text-rosa-deep">{status}</p> : null}
 
-        <div className="mb-6 flex gap-2">
+        <div className="mb-6 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setTab("products")}
@@ -220,9 +221,18 @@ export function AdminPage() {
           >
             Depoimentos ({content.testimonials.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("quotes")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "quotes" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
+          >
+            Orçamentos
+          </button>
         </div>
 
-        {tab === "products" ? (
+        {tab === "quotes" ? (
+          <QuoteBuilder onStatus={setStatus} />
+        ) : tab === "products" ? (
           <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <div className="space-y-3">
               <button
