@@ -6,6 +6,7 @@ import {
   formatDraftDate,
   listQuoteDrafts,
   removeQuoteDraft,
+  reuseQuoteDraft,
   saveQuoteDraft,
   type QuoteDraft,
 } from "../lib/quoteDrafts";
@@ -107,13 +108,31 @@ export function QuoteBuilder({ onStatus }: Props) {
     onStatus?.("Orçamento excluído.");
   }
 
+  function handleReuse(draft: QuoteDraft) {
+    const created = reuseQuoteDraft(draft);
+    skipAutoSave.current = true;
+    setDraftId(created.id);
+    setQuote(structuredClone(created.data));
+    setDirty(false);
+    setLastSavedAt(created.updatedAt);
+    refreshDrafts();
+    onStatus?.(
+      `Modelo reutilizado de "${draftLabel(draft)}". Troque o cliente e ajuste o que precisar.`,
+    );
+    window.setTimeout(() => {
+      document.getElementById("quote-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
   async function handleDownload() {
     setBusy(true);
     onStatus?.("");
     try {
       await downloadQuotePdf(quote);
       persist("finalized");
-      onStatus?.("PDF baixado e orçamento marcado como finalizado.");
+      onStatus?.(
+        "PDF baixado. Orçamento guardado na biblioteca para reutilizar com outro cliente.",
+      );
     } catch (err) {
       console.error("[quotePdf]", err);
       onStatus?.(
@@ -147,10 +166,9 @@ export function QuoteBuilder({ onStatus }: Props) {
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-ink">Rascunhos</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink">Em andamento</h2>
             <p className="mt-1 text-sm text-muted">
-              Comece hoje, volte amanhã e finalize quando quiser. Os rascunhos ficam salvos neste
-              navegador.
+              Orçamentos ainda abertos. Salva sozinho neste navegador para continuar depois.
             </p>
           </div>
           <button
@@ -162,51 +180,62 @@ export function QuoteBuilder({ onStatus }: Props) {
           </button>
         </div>
 
-        {drafts.length === 0 ? (
+        {openDrafts.length === 0 ? (
           <p className="rounded-2xl bg-cream/80 px-4 py-3 text-sm text-muted ring-1 ring-rosa/10">
-            Nenhum rascunho ainda. Preencha o formulário abaixo — ele salva sozinho enquanto você
-            edita.
+            Nenhum rascunho em andamento. Preencha o formulário abaixo ou reutilize um da
+            biblioteca.
           </p>
         ) : (
-          <div className="space-y-4">
-            {openDrafts.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rosa">
-                  Em andamento ({openDrafts.length})
-                </p>
-                {openDrafts.map((draft) => (
-                  <DraftRow
-                    key={draft.id}
-                    draft={draft}
-                    active={draft.id === draftId}
-                    onOpen={() => openDraft(draft)}
-                    onDelete={() => handleDeleteDraft(draft.id)}
-                  />
-                ))}
-              </div>
-            ) : null}
-
-            {finalizedDrafts.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-olive">
-                  Finalizados ({finalizedDrafts.length})
-                </p>
-                {finalizedDrafts.map((draft) => (
-                  <DraftRow
-                    key={draft.id}
-                    draft={draft}
-                    active={draft.id === draftId}
-                    onOpen={() => openDraft(draft)}
-                    onDelete={() => handleDeleteDraft(draft.id)}
-                  />
-                ))}
-              </div>
-            ) : null}
+          <div className="space-y-2">
+            {openDrafts.map((draft) => (
+              <DraftRow
+                key={draft.id}
+                draft={draft}
+                active={draft.id === draftId}
+                mode="draft"
+                onOpen={() => openDraft(draft)}
+                onDelete={() => handleDeleteDraft(draft.id)}
+              />
+            ))}
           </div>
         )}
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
+        <div className="mb-4">
+          <h2 className="font-display text-2xl font-semibold text-ink">Biblioteca de orçamentos</h2>
+          <p className="mt-1 text-sm text-muted">
+            Quando você gera o PDF, o orçamento fica guardado aqui. Use{" "}
+            <strong className="font-semibold text-ink">Reutilizar</strong> para copiar itens e
+            valores para um novo cliente — só troca o nome e o que precisar.
+          </p>
+        </div>
+
+        {finalizedDrafts.length === 0 ? (
+          <p className="rounded-2xl bg-olive-soft/60 px-4 py-3 text-sm text-muted ring-1 ring-olive/15">
+            Ainda vazio. Finalize um orçamento com PDF e ele aparece nesta biblioteca.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {finalizedDrafts.map((draft) => (
+              <DraftRow
+                key={draft.id}
+                draft={draft}
+                active={draft.id === draftId}
+                mode="library"
+                onOpen={() => openDraft(draft)}
+                onReuse={() => handleReuse(draft)}
+                onDelete={() => handleDeleteDraft(draft.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div
+        id="quote-editor"
+        className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6"
+      >
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-2xl font-semibold text-ink">
@@ -218,7 +247,9 @@ export function QuoteBuilder({ onStatus }: Props) {
                 : lastSavedAt
                   ? `Salvo · ${formatDraftDate(lastSavedAt)}`
                   : "Preencha e salve para continuar depois."}
-              {activeDraft?.status === "finalized" ? " · Já finalizado (pode gerar o PDF de novo)." : null}
+              {activeDraft?.status === "finalized"
+                ? " · Já finalizado (pode gerar o PDF de novo)."
+                : null}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -477,12 +508,16 @@ export function QuoteBuilder({ onStatus }: Props) {
 function DraftRow({
   draft,
   active,
+  mode,
   onOpen,
+  onReuse,
   onDelete,
 }: {
   draft: QuoteDraft;
   active: boolean;
+  mode: "draft" | "library";
   onOpen: () => void;
+  onReuse?: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -496,23 +531,32 @@ function DraftRow({
         <p className="text-sm text-muted">
           {draft.data.numero} · {draftSummary(draft)}
         </p>
-        <p className="text-xs text-muted">Atualizado {formatDraftDate(draft.updatedAt)}</p>
+        <p className="text-xs text-muted">
+          {mode === "library" ? "Salvo" : "Atualizado"} {formatDraftDate(draft.updatedAt)}
+        </p>
       </div>
       <span
         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-          draft.status === "draft"
-            ? "bg-sand/80 text-ink"
-            : "bg-olive-soft text-olive"
+          mode === "draft" ? "bg-sand/80 text-ink" : "bg-olive-soft text-olive"
         }`}
       >
-        {draft.status === "draft" ? "Em andamento" : "Finalizado"}
+        {mode === "draft" ? "Em andamento" : "Biblioteca"}
       </span>
+      {mode === "library" ? (
+        <button
+          type="button"
+          onClick={onReuse}
+          className="rounded-full bg-rosa px-3 py-1.5 text-sm font-semibold text-white"
+        >
+          Reutilizar
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onOpen}
         className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold ring-1 ring-rosa/15"
       >
-        Continuar
+        {mode === "library" ? "Abrir" : "Continuar"}
       </button>
       <button
         type="button"

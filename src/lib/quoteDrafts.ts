@@ -1,5 +1,8 @@
 import {
   createDefaultQuote,
+  defaultQuoteDateLabel,
+  defaultQuoteNumber,
+  emptyQuoteItem,
   quoteTotal,
   type QuoteData,
 } from "./quotePdf";
@@ -90,6 +93,28 @@ export function saveQuoteDraft(
 
 export function removeQuoteDraft(id: string) {
   writeAll(readAll().filter((d) => d.id !== id));
+}
+
+/** Copia itens/valores de um orçamento pronto para um novo cliente. */
+export function reuseQuoteForNewClient(source: QuoteData): QuoteData {
+  const itens = source.itens
+    .filter((item) => item.nome.trim())
+    .map((item) => ({
+      ...item,
+      id: crypto.randomUUID(),
+    }));
+
+  return {
+    ...source,
+    cliente: "",
+    numero: defaultQuoteNumber(),
+    data: defaultQuoteDateLabel(),
+    itens: itens.length > 0 ? itens : [emptyQuoteItem()],
+  };
+}
+
+export function reuseQuoteDraft(source: QuoteDraft): QuoteDraft {
+  return createQuoteDraft(reuseQuoteForNewClient(source.data));
 }
 
 export function draftLabel(draft: QuoteDraft): string {
