@@ -1,4 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createQuoteDraft,
+  draftLabel,
+  draftSummary,
+  formatDraftDate,
+  listQuoteDrafts,
+  removeQuoteDraft,
+  saveQuoteDraft,
+  type QuoteDraft,
+} from "../lib/quoteDrafts";
 import {
   createDefaultQuote,
   downloadQuotePdf,
@@ -21,18 +31,80 @@ function updateItem(items: QuoteItem[], id: string, patch: Partial<QuoteItem>): 
 }
 
 export function QuoteBuilder({ onStatus }: Props) {
+  const [drafts, setDrafts] = useState<QuoteDraft[]>(() => listQuoteDrafts());
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [quote, setQuote] = useState<QuoteData>(() => createDefaultQuote());
   const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const skipAutoSave = useRef(false);
 
   const total = useMemo(() => quoteTotal(quote.itens), [quote.itens]);
+  const activeDraft = drafts.find((d) => d.id === draftId) ?? null;
+  const openDrafts = drafts.filter((d) => d.status === "draft");
+  const finalizedDrafts = drafts.filter((d) => d.status === "finalized");
+
+  function refreshDrafts() {
+    setDrafts(listQuoteDrafts());
+  }
 
   function setField<K extends keyof QuoteData>(key: K, value: QuoteData[K]) {
     setQuote((prev) => ({ ...prev, [key]: value }));
+    setDirty(true);
   }
 
-  function clearForm() {
+  function startNew() {
+    skipAutoSave.current = true;
+    setDraftId(null);
     setQuote(createDefaultQuote());
-    onStatus?.("Formulário limpo.");
+    setDirty(false);
+    setLastSavedAt(null);
+    onStatus?.("Novo orçamento iniciado.");
+  }
+
+  function openDraft(draft: QuoteDraft) {
+    skipAutoSave.current = true;
+    setDraftId(draft.id);
+    setQuote(structuredClone(draft.data));
+    setDirty(false);
+    setLastSavedAt(draft.updatedAt);
+    onStatus?.(`Rascunho aberto: ${draftLabel(draft)}.`);
+  }
+
+  function persist(status?: QuoteDraft["status"]): QuoteDraft {
+    if (draftId) {
+      const saved = saveQuoteDraft(draftId, quote, status);
+      setLastSavedAt(saved.updatedAt);
+      setDirty(false);
+      refreshDrafts();
+      return saved;
+    }
+
+    const created = createQuoteDraft(quote);
+    const saved =
+      status && status !== "draft"
+        ? saveQuoteDraft(created.id, quote, status)
+        : created;
+    setDraftId(saved.id);
+    setLastSavedAt(saved.updatedAt);
+    setDirty(false);
+    refreshDrafts();
+    return saved;
+  }
+
+  function handleSaveDraft() {
+    const saved = persist("draft");
+    onStatus?.(`Rascunho salvo: ${draftLabel(saved)}. Pode fechar e continuar depois.`);
+  }
+
+  function handleDeleteDraft(id: string) {
+    const target = drafts.find((d) => d.id === id);
+    const label = target ? draftLabel(target) : "orçamento";
+    if (!confirm(`Excluir o orçamento de "${label}"?`)) return;
+    removeQuoteDraft(id);
+    refreshDrafts();
+    if (draftId === id) startNew();
+    onStatus?.("Orçamento excluído.");
   }
 
   async function handleDownload() {
@@ -40,7 +112,8 @@ export function QuoteBuilder({ onStatus }: Props) {
     onStatus?.("");
     try {
       await downloadQuotePdf(quote);
-      onStatus?.("PDF baixado com sucesso.");
+      persist("finalized");
+      onStatus?.("PDF baixado e orçamento marcado como finalizado.");
     } catch (err) {
       console.error("[quotePdf]", err);
       onStatus?.(
@@ -53,24 +126,109 @@ export function QuoteBuilder({ onStatus }: Props) {
     }
   }
 
+  useEffect(() => {
+    if (skipAutoSave.current) {
+      skipAutoSave.current = false;
+      return;
+    }
+    if (!dirty) return;
+
+    const timer = window.setTimeout(() => {
+      const saved = persist(activeDraft?.status === "finalized" ? "finalized" : "draft");
+      onStatus?.(`Salvo automaticamente · ${formatDraftDate(saved.updatedAt)}`);
+    }, 900);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally debounce on quote/dirty only
+  }, [quote, dirty]);
+
   return (
     <div className="space-y-6">
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-ink">Rascunhos</h2>
+            <p className="mt-1 text-sm text-muted">
+              Comece hoje, volte amanhã e finalize quando quiser. Os rascunhos ficam salvos neste
+              navegador.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNew}
+            className="rounded-full bg-rosa px-4 py-2 text-sm font-semibold text-white"
+          >
+            + Novo orçamento
+          </button>
+        </div>
+
+        {drafts.length === 0 ? (
+          <p className="rounded-2xl bg-cream/80 px-4 py-3 text-sm text-muted ring-1 ring-rosa/10">
+            Nenhum rascunho ainda. Preencha o formulário abaixo — ele salva sozinho enquanto você
+            edita.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {openDrafts.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rosa">
+                  Em andamento ({openDrafts.length})
+                </p>
+                {openDrafts.map((draft) => (
+                  <DraftRow
+                    key={draft.id}
+                    draft={draft}
+                    active={draft.id === draftId}
+                    onOpen={() => openDraft(draft)}
+                    onDelete={() => handleDeleteDraft(draft.id)}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {finalizedDrafts.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-olive">
+                  Finalizados ({finalizedDrafts.length})
+                </p>
+                {finalizedDrafts.map((draft) => (
+                  <DraftRow
+                    key={draft.id}
+                    draft={draft}
+                    active={draft.id === draftId}
+                    onOpen={() => openDraft(draft)}
+                    onDelete={() => handleDeleteDraft(draft.id)}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-ink">Novo orçamento</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink">
+              {draftId ? "Editar orçamento" : "Novo orçamento"}
+            </h2>
             <p className="mt-1 text-sm text-muted">
-              Preencha os dados e baixe o PDF com o layout profissional da 3DXAP.
+              {dirty
+                ? "Alterações pendentes — salvando automaticamente…"
+                : lastSavedAt
+                  ? `Salvo · ${formatDraftDate(lastSavedAt)}`
+                  : "Preencha e salve para continuar depois."}
+              {activeDraft?.status === "finalized" ? " · Já finalizado (pode gerar o PDF de novo)." : null}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={clearForm}
+              onClick={handleSaveDraft}
               disabled={busy}
               className="rounded-full bg-cream px-4 py-2 text-sm font-semibold ring-1 ring-rosa/15 disabled:opacity-50"
             >
-              Limpar
+              Salvar rascunho
             </button>
             <button
               type="button"
@@ -78,7 +236,7 @@ export function QuoteBuilder({ onStatus }: Props) {
               disabled={busy}
               className="rounded-full bg-rosa px-5 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(196,91,134,0.25)] disabled:opacity-50"
             >
-              {busy ? "Gerando PDF…" : "Baixar PDF"}
+              {busy ? "Gerando PDF…" : "Finalizar e baixar PDF"}
             </button>
           </div>
         </div>
@@ -168,10 +326,7 @@ export function QuoteBuilder({ onStatus }: Props) {
 
         <div className="space-y-4">
           {quote.itens.map((item, index) => (
-            <div
-              key={item.id}
-              className="rounded-2xl bg-cream/70 p-4 ring-1 ring-rosa/10"
-            >
+            <div key={item.id} className="rounded-2xl bg-cream/70 p-4 ring-1 ring-rosa/10">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rosa">
                   Item {index + 1}
@@ -315,6 +470,57 @@ export function QuoteBuilder({ onStatus }: Props) {
           <p className="text-base font-semibold text-rosa-deep">Total {formatBRL(total)}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DraftRow({
+  draft,
+  active,
+  onOpen,
+  onDelete,
+}: {
+  draft: QuoteDraft;
+  active: boolean;
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className={`flex flex-wrap items-center gap-3 rounded-2xl p-3 ring-1 ${
+        active ? "bg-blush/60 ring-rosa/30" : "bg-cream/70 ring-rosa/10"
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold text-ink">{draftLabel(draft)}</p>
+        <p className="text-sm text-muted">
+          {draft.data.numero} · {draftSummary(draft)}
+        </p>
+        <p className="text-xs text-muted">Atualizado {formatDraftDate(draft.updatedAt)}</p>
+      </div>
+      <span
+        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+          draft.status === "draft"
+            ? "bg-sand/80 text-ink"
+            : "bg-olive-soft text-olive"
+        }`}
+      >
+        {draft.status === "draft" ? "Em andamento" : "Finalizado"}
+      </span>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold ring-1 ring-rosa/15"
+      >
+        Continuar
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="rounded-full px-3 py-1.5 text-sm font-medium text-rosa-deep"
+      >
+        Excluir
+      </button>
     </div>
   );
 }
