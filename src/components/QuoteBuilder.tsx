@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   createQuoteDraft,
   draftLabel,
@@ -29,6 +29,46 @@ type Props = {
 
 function updateItem(items: QuoteItem[], id: string, patch: Partial<QuoteItem>): QuoteItem[] {
   return items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+}
+
+function getFormFields(root: HTMLElement): HTMLInputElement[] {
+  return Array.from(
+    root.querySelectorAll<HTMLInputElement>(
+      "input:not([type='hidden']):not([type='button']):not([type='submit']):not([disabled])",
+    ),
+  ).filter((el) => {
+    const style = window.getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden" && !el.readOnly;
+  });
+}
+
+function handleQuoteFieldKeyDown(
+  e: KeyboardEvent<HTMLElement>,
+  options?: { onLastEnter?: () => void },
+) {
+  if (e.key !== "Enter") return;
+  const target = e.target;
+  if (!(target instanceof HTMLInputElement)) return;
+
+  e.preventDefault();
+
+  const root = e.currentTarget;
+  const fieldsBefore = getFormFields(root);
+  const index = fieldsBefore.indexOf(target);
+
+  // Flush blur handlers (ex.: valor unitário salva no blur)
+  target.blur();
+
+  window.setTimeout(() => {
+    const fields = getFormFields(root);
+    if (index >= 0 && index + 1 < fields.length) {
+      const next = fields[index + 1];
+      next.focus();
+      if (typeof next.select === "function") next.select();
+      return;
+    }
+    options?.onLastEnter?.();
+  }, 0);
 }
 
 export function QuoteBuilder({ onStatus }: Props) {
@@ -96,6 +136,22 @@ export function QuoteBuilder({ onStatus }: Props) {
   function handleSaveDraft() {
     const saved = persist("draft");
     onStatus?.(`Rascunho salvo: ${draftLabel(saved)}. Pode fechar e continuar depois.`);
+  }
+
+  function addItemAndFocusName() {
+    const newItem = emptyQuoteItem();
+    setQuote((prev) => ({ ...prev, itens: [...prev.itens, newItem] }));
+    setDirty(true);
+    window.setTimeout(() => {
+      const root = document.getElementById("quote-form-nav");
+      if (!root) return;
+      const names = root.querySelectorAll<HTMLInputElement>(
+        'input[placeholder="Ex.: Tintinhos (Chaveiro)"]',
+      );
+      const last = names[names.length - 1];
+      last?.focus();
+      last?.select();
+    }, 30);
   }
 
   function handleDeleteDraft(id: string) {
@@ -233,6 +289,15 @@ export function QuoteBuilder({ onStatus }: Props) {
       </div>
 
       <div
+        id="quote-form-nav"
+        onKeyDown={(e) =>
+          handleQuoteFieldKeyDown(e, {
+            onLastEnter: addItemAndFocusName,
+          })
+        }
+        className="space-y-6"
+      >
+      <div
         id="quote-editor"
         className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6"
       >
@@ -249,7 +314,9 @@ export function QuoteBuilder({ onStatus }: Props) {
                   : "Preencha e salve para continuar depois."}
               {activeDraft?.status === "finalized"
                 ? " · Já finalizado (pode gerar o PDF de novo)."
-                : null}
+                : null}{" "}
+              Use <strong className="font-semibold text-ink">Tab</strong> ou{" "}
+              <strong className="font-semibold text-ink">Enter</strong> para ir ao próximo campo.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -457,6 +524,7 @@ export function QuoteBuilder({ onStatus }: Props) {
             <p className="mt-1 text-2xl font-semibold">{formatBRL(total)}</p>
           </div>
         </div>
+      </div>
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
