@@ -101,13 +101,15 @@ async function fetchElginCompatibleZpl(token, id) {
   }
 }
 
-/** Garante ^PW/^LL de bobina 100x150. */
+/** Garante modo gap; nao forca ^LL1218 (isso deslocava o inicio para o meio). */
 function ensureStockLabelSize(zpl) {
   let out = String(zpl);
-  if (/\^PW\d+/i.test(out)) out = out.replace(/\^PW\d+/i, "^PW812");
-  else out = out.replace(/\^XA/i, "^XA\n^PW812");
-  if (/\^LL\d+/i.test(out)) out = out.replace(/\^LL\d+/i, "^LL1218");
-  else out = out.replace(/\^XA/i, "^XA\n^LL1218");
+  if (!/\^MNY/i.test(out) && !/\^MNN/i.test(out)) {
+    out = out.replace(/\^XA/i, "^XA\n^MNY");
+  }
+  if (!/\^LT-?\d+/i.test(out)) {
+    out = out.replace(/\^XA/i, "^XA\n^LT-120");
+  }
   return out;
 }
 

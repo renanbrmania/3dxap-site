@@ -221,15 +221,22 @@ export async function discoverElginPrinter({ preferMac = true, useCache = true }
 
 export async function sendZpl(zpl, { host, port = PRINTER.port } = {}) {
   const printer = host ? { ip: host, port } : await discoverElginPrinter();
+  // Prefixo: modo gap (bobina com etiqueta) — evita comecar no meio da etiqueta
+  const payload = String(zpl || "").trim();
+  const withMedia =
+    /\^MNY/i.test(payload) || /\^MNN/i.test(payload) || /\^MNW/i.test(payload)
+      ? payload
+      : `^XA^MNY^XZ\r\n${payload}`;
+
   await new Promise((resolve, reject) => {
     const socket = net.connect({ host: printer.ip, port: printer.port || port });
     const timer = setTimeout(() => {
       socket.destroy();
       reject(new Error(`Timeout ao enviar ZPL para ${printer.ip}`));
-    }, 8000);
+    }, 15000);
 
     socket.on("connect", () => {
-      socket.write(zpl.endsWith("\n") ? zpl : `${zpl}\r\n`);
+      socket.write(withMedia.endsWith("\n") ? withMedia : `${withMedia}\r\n`);
       socket.end();
     });
     socket.on("error", (err) => {

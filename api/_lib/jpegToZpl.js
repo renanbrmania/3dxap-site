@@ -3,21 +3,17 @@ import jpeg from "jpeg-js";
 /**
  * Converte JPEG (etiqueta ME) em ZPL ASCII hex para Elgin L42 100x150 @ 203dpi.
  *
- * - Remove margens brancas
- * - Se vier etiqueta+canhoto lado a lado, fica so a etiqueta (esquerda)
- * - Escala para caber na area util (sem centralizar — centralizar gerava topo vazio)
+ * Importante: NAO forcar ^LL1218 com grafico menor — a L42 comeca a imprimir
+ * “no meio” da bobina. Usamos tamanho do conteudo + sensor de gap (^MNY) e
+ * ^LT negativo para puxar o desenho para o topo fisico da etiqueta.
  */
 
-/**
- * Area util CONSERVADORA dentro da bobina 100x150 @ 203dpi (812x1218).
- * Valores cheios cortavam o rodape (o "1" grande e os codigos de barras).
- */
 export const ELGIN_LABEL = {
-  width: 760,
-  height: 920,
-  fullWidth: 812,
-  fullHeight: 1218,
+  width: 780,
+  height: 1100,
   dpi: 203,
+  /** Label Top negativo: sobe o conteudo (L42 costuma imprimir baixo demais). */
+  labelTop: -120,
 };
 
 function resizeNearest(src, sw, sh, dw, dh) {
@@ -52,7 +48,6 @@ function copyRect(src, sw, sx, sy, tw, th) {
   return out;
 }
 
-/** Remove bordas quase brancas. */
 function trimWhite(rgba, width, height, threshold = 248, pad = 2) {
   let minX = width;
   let minY = height;
@@ -88,16 +83,11 @@ function trimWhite(rgba, width, height, threshold = 248, pad = 2) {
   };
 }
 
-/**
- * JPEG do ME as vezes vem com etiqueta + canhoto/recibo na horizontal.
- * Recorta a esquerda para ficar no aspecto ~100x150.
- */
 function cropSideBySideIfNeeded(rgba, width, height) {
   const aspect = width / height;
-  const targetAspect = 100 / 150; // 0.666...
+  const targetAspect = 100 / 150;
   if (aspect <= 0.85) return { data: rgba, width, height };
 
-  // Largura da etiqueta = altura * (100/150), a partir da esquerda
   let keep = Math.floor(height * targetAspect);
   keep = Math.min(width, Math.max(8, keep));
   keep = keep - (keep % 8 || 0) || keep;
@@ -138,12 +128,13 @@ function align8(w) {
 
 /**
  * @param {Buffer|Uint8Array} jpegBuffer
- * @param {{ maxWidth?: number, maxHeight?: number, threshold?: number }} [opts]
+ * @param {{ maxWidth?: number, maxHeight?: number, threshold?: number, labelTop?: number }} [opts]
  */
 export function jpegToElginZpl(jpegBuffer, opts = {}) {
   const maxWidth = opts.maxWidth || ELGIN_LABEL.width;
   const maxHeight = opts.maxHeight || ELGIN_LABEL.height;
   const threshold = opts.threshold ?? 190;
+  const labelTop = opts.labelTop ?? ELGIN_LABEL.labelTop;
 
   const decoded = jpeg.decode(Buffer.from(jpegBuffer), {
     useTArray: true,
@@ -156,7 +147,6 @@ export function jpegToElginZpl(jpegBuffer, opts = {}) {
   ({ data, width, height } = cropSideBySideIfNeeded(data, width, height));
   ({ data, width, height } = trimWhite(data, width, height));
 
-  // Cabe inteiro na area util, alinhado no TOPO-ESQUERDA (sem “centralizar”)
   const scale = Math.min(maxWidth / width, maxHeight / height);
   let dw = Math.max(8, Math.floor(width * scale));
   let dh = Math.max(8, Math.floor(height * scale));
@@ -167,24 +157,40 @@ export function jpegToElginZpl(jpegBuffer, opts = {}) {
   const hex = toHex(bytes);
   const total = bytes.length;
 
-  // Bobina fixa 100x150; grafico menor encaixado no topo com margem
-  const stockW = opts.fullWidth || ELGIN_LABEL.fullWidth;
-  const stockH = opts.fullHeight || ELGIN_LABEL.fullHeight;
-  const marginX = Math.max(0, Math.floor((stockW - dw) / 2));
-  const marginY = 16;
-
+  // ^LL = altura do desenho (nao 1218 vazio). ^MNY = sensor de gap.
+  // ^LT negativo sobe o inicio da impressao na L42.
   return `^XA
+^MNY
 ^CI28
-^PW${stockW}
-^LL${stockH}
+^PW${dw}
+^LL${dh}
 ^LH0,0
 ^LS0
-^LT0
-^FO${marginX},${marginY}^GFA,${total},${total},${bytesPerRow},${hex}^FS
+^LT${labelTop}
+^FO0,0^GFA,${total},${total},${bytesPerRow},${hex}^FS
 ^XZ
 `;
 }
 
 export function zplLooksLikeUnsupportedZ64(zpl) {
   return /:Z64:/i.test(String(zpl || ""));
+}
+
+/** Etiqueta de diagnostico: marca TOPO e MEIO para calibrar a Elgin. */
+export function buildCalibrationZpl() {
+  return `^XA
+^MNY
+^CI28
+^PW800
+^LL1200
+^LH0,0
+^LS0
+^LT-120
+^FO40,20^A0N,48,48^FDTOPO DA ETIQUETA^FS
+^FO40,80^A0N,32,32^FDSe isto nao esta no topo fisico,^FS
+^FO40,120^A0N,32,32^FDcalibrar sensor / ^LT^FS
+^FO40,560^A0N,48,48^FDMEIO (y=560)^FS
+^FO40,1100^A0N,40,40^FDFIM^FS
+^XZ
+`;
 }
