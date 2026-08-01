@@ -324,7 +324,11 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
         );
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      let msg = err instanceof Error ? err.message : String(err);
+      if (/load failed|failed to fetch|networkerror|cors/i.test(msg)) {
+        msg =
+          "Falha de rede ao baixar a etiqueta. Atualize a pagina e tente de novo (download agora pelo servidor).";
+      }
       patch({ lastError: msg });
       onStatus?.(msg);
     } finally {
