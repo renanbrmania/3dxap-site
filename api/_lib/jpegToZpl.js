@@ -1,15 +1,17 @@
 import jpeg from "jpeg-js";
 
 /**
- * Converte JPEG (etiqueta ME) em ZPL com grafico ASCII hex.
- * A Elgin L42 nao processa bem ^GFA :Z64: do Melhor Envio — sai "ok" e nao imprime.
+ * Converte JPEG (etiqueta ME) em ZPL ASCII hex para Elgin L42 100x150 @ 203dpi.
  *
- * Alvo: bobina 100x150 mm @ 203 dpi ≈ 812 x 1218 dots.
+ * - Remove margens brancas
+ * - Se vier etiqueta+canhoto lado a lado, fica so a etiqueta (esquerda)
+ * - Escala para caber na area util (sem centralizar — centralizar gerava topo vazio)
  */
 
+/** Area util um pouco menor que 812x1218 para nao cortar no gap da bobina. */
 export const ELGIN_LABEL = {
-  width: 812,
-  height: 1218,
+  width: 800,
+  height: 1100,
   dpi: 203,
 };
 
@@ -30,8 +32,23 @@ function resizeNearest(src, sw, sh, dw, dh) {
   return out;
 }
 
-/** Remove bordas brancas do JPEG do ME (evita topo vazio + rodape cortado). */
-function trimWhite(rgba, width, height, threshold = 245, pad = 4) {
+function copyRect(src, sw, sx, sy, tw, th) {
+  const out = new Uint8ClampedArray(tw * th * 4);
+  for (let y = 0; y < th; y++) {
+    for (let x = 0; x < tw; x++) {
+      const si = ((sy + y) * sw + (sx + x)) * 4;
+      const di = (y * tw + x) * 4;
+      out[di] = src[si];
+      out[di + 1] = src[si + 1];
+      out[di + 2] = src[si + 2];
+      out[di + 3] = src[si + 3];
+    }
+  }
+  return out;
+}
+
+/** Remove bordas quase brancas. */
+function trimWhite(rgba, width, height, threshold = 248, pad = 2) {
   let minX = width;
   let minY = height;
   let maxX = -1;
@@ -40,8 +57,7 @@ function trimWhite(rgba, width, height, threshold = 245, pad = 4) {
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const a = rgba[i + 3];
-      if (a < 128) continue;
+      if (rgba[i + 3] < 128) continue;
       const lum = (rgba[i] * 299 + rgba[i + 1] * 587 + rgba[i + 2] * 114) / 1000;
       if (lum < threshold) {
         if (x < minX) minX = x;
@@ -52,47 +68,51 @@ function trimWhite(rgba, width, height, threshold = 245, pad = 4) {
     }
   }
 
-  if (maxX < 0 || maxY < 0) {
-    return { data: rgba, width, height };
-  }
+  if (maxX < 0 || maxY < 0) return { data: rgba, width, height };
 
   minX = Math.max(0, minX - pad);
   minY = Math.max(0, minY - pad);
   maxX = Math.min(width - 1, maxX + pad);
   maxY = Math.min(height - 1, maxY + pad);
-
   const tw = maxX - minX + 1;
   const th = maxY - minY + 1;
-  const out = new Uint8ClampedArray(tw * th * 4);
-  for (let y = 0; y < th; y++) {
-    for (let x = 0; x < tw; x++) {
-      const si = ((minY + y) * width + (minX + x)) * 4;
-      const di = (y * tw + x) * 4;
-      out[di] = rgba[si];
-      out[di + 1] = rgba[si + 1];
-      out[di + 2] = rgba[si + 2];
-      out[di + 3] = rgba[si + 3];
-    }
-  }
-  return { data: out, width: tw, height: th };
+  return {
+    data: copyRect(rgba, width, minX, minY, tw, th),
+    width: tw,
+    height: th,
+  };
 }
 
-function rgbaToMonoBytes(rgba, width, height, threshold = 200) {
+/**
+ * JPEG do ME as vezes vem com etiqueta + canhoto/recibo na horizontal.
+ * Recorta a esquerda para ficar no aspecto ~100x150.
+ */
+function cropSideBySideIfNeeded(rgba, width, height) {
+  const aspect = width / height;
+  const targetAspect = 100 / 150; // 0.666...
+  if (aspect <= 0.85) return { data: rgba, width, height };
+
+  // Largura da etiqueta = altura * (100/150), a partir da esquerda
+  let keep = Math.floor(height * targetAspect);
+  keep = Math.min(width, Math.max(8, keep));
+  keep = keep - (keep % 8 || 0) || keep;
+  return {
+    data: copyRect(rgba, width, 0, 0, keep, height),
+    width: keep,
+    height,
+  };
+}
+
+function rgbaToMonoBytes(rgba, width, height, threshold = 190) {
   const bytesPerRow = Math.ceil(width / 8);
-  const total = bytesPerRow * height;
-  const bytes = new Uint8Array(total);
+  const bytes = new Uint8Array(bytesPerRow * height);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const r = rgba[i];
-      const g = rgba[i + 1];
-      const b = rgba[i + 2];
       const a = rgba[i + 3];
-      const lum = a < 128 ? 255 : (r * 299 + g * 587 + b * 114) / 1000;
-      const black = lum < threshold;
-      if (black) {
-        const byteIndex = y * bytesPerRow + (x >> 3);
-        bytes[byteIndex] |= 0x80 >> (x & 7);
+      const lum = a < 128 ? 255 : (rgba[i] * 299 + rgba[i + 1] * 587 + rgba[i + 2] * 114) / 1000;
+      if (lum < threshold) {
+        bytes[y * bytesPerRow + (x >> 3)] |= 0x80 >> (x & 7);
       }
     }
   }
@@ -107,19 +127,18 @@ function toHex(bytes) {
   return hex;
 }
 
-function alignWidth(w) {
+function align8(w) {
   return w + ((8 - (w % 8)) % 8);
 }
 
 /**
  * @param {Buffer|Uint8Array} jpegBuffer
- * @param {{ maxWidth?: number, maxHeight?: number, threshold?: number, trim?: boolean }} [opts]
+ * @param {{ maxWidth?: number, maxHeight?: number, threshold?: number }} [opts]
  */
 export function jpegToElginZpl(jpegBuffer, opts = {}) {
   const maxWidth = opts.maxWidth || ELGIN_LABEL.width;
   const maxHeight = opts.maxHeight || ELGIN_LABEL.height;
-  const threshold = opts.threshold ?? 200;
-  const doTrim = opts.trim !== false;
+  const threshold = opts.threshold ?? 190;
 
   const decoded = jpeg.decode(Buffer.from(jpegBuffer), {
     useTArray: true,
@@ -128,47 +147,26 @@ export function jpegToElginZpl(jpegBuffer, opts = {}) {
   let { width, height, data } = decoded;
   if (!width || !height) throw new Error("JPEG invalido para conversao ZPL.");
 
-  if (doTrim) {
-    const trimmed = trimWhite(data, width, height);
-    data = trimmed.data;
-    width = trimmed.width;
-    height = trimmed.height;
-  }
+  ({ data, width, height } = trimWhite(data, width, height));
+  ({ data, width, height } = cropSideBySideIfNeeded(data, width, height));
+  ({ data, width, height } = trimWhite(data, width, height));
 
-  // Encaixa 100% do conteudo no rotulo 100x150 (sem cortar)
+  // Cabe inteiro na area util, alinhado no TOPO-ESQUERDA (sem “centralizar”)
   const scale = Math.min(maxWidth / width, maxHeight / height);
   let dw = Math.max(8, Math.floor(width * scale));
   let dh = Math.max(8, Math.floor(height * scale));
-  dw = alignWidth(dw);
+  dw = align8(dw);
 
-  let rgba = resizeNearest(data, width, height, dw, dh);
-
-  // Centraliza em canvas do tamanho da etiqueta (evita deslocar e cortar no gap)
-  const canvasW = alignWidth(maxWidth);
-  const canvasH = maxHeight;
-  const canvas = new Uint8ClampedArray(canvasW * canvasH * 4);
-  canvas.fill(255);
-  const ox = Math.max(0, Math.floor((canvasW - dw) / 2));
-  const oy = Math.max(0, Math.floor((canvasH - dh) / 2));
-  for (let y = 0; y < dh; y++) {
-    for (let x = 0; x < dw; x++) {
-      const si = (y * dw + x) * 4;
-      const di = ((oy + y) * canvasW + (ox + x)) * 4;
-      canvas[di] = rgba[si];
-      canvas[di + 1] = rgba[si + 1];
-      canvas[di + 2] = rgba[si + 2];
-      canvas[di + 3] = rgba[si + 3];
-    }
-  }
-
-  const { bytes, bytesPerRow } = rgbaToMonoBytes(canvas, canvasW, canvasH, threshold);
+  const rgba = resizeNearest(data, width, height, dw, dh);
+  const { bytes, bytesPerRow } = rgbaToMonoBytes(rgba, dw, dh, threshold);
   const hex = toHex(bytes);
   const total = bytes.length;
 
+  // ^LL = altura do conteudo (nao forca 1218 com espaco vazio em cima)
   return `^XA
 ^CI28
-^PW${canvasW}
-^LL${canvasH}
+^PW${dw}
+^LL${dh}
 ^LH0,0
 ^LS0
 ^LT0

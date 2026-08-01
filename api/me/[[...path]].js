@@ -8,6 +8,7 @@ import {
   sendJson,
 } from "../_lib/me.js";
 import { jpegToElginZpl, zplLooksLikeUnsupportedZ64 } from "../_lib/jpegToZpl.js";
+import zlib from "node:zlib";
 
 /**
  * ME devolve URL S3 ou ZPL cru. Resolve sempre para texto ZPL no servidor
@@ -83,11 +84,16 @@ async function fetchElginCompatibleZpl(token, id) {
   try {
     const jpegPayload = await meFetch(`/api/v2/me/imprimir/jpeg/${id}`, { token });
     const buf = await resolveJpegBuffer(jpegPayload);
-    return jpegToElginZpl(buf);
+    const zpl = jpegToElginZpl(buf);
+    return zpl;
   } catch (jpegErr) {
     const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
     const raw = await resolveZplContent(file);
-    const zpl = extractShippingLabelZpl(raw);
+    let zpl = extractShippingLabelZpl(raw);
+    if (zplLooksLikeUnsupportedZ64(zpl)) {
+      // Tenta expandir Z64 → hex ASCII (mantem layout original do ME)
+      zpl = expandZ64ToAsciiHex(zpl);
+    }
     if (zplLooksLikeUnsupportedZ64(zpl)) {
       throw new Error(
         `Etiqueta Z64 nao suportada pela Elgin e JPEG falhou: ${jpegErr instanceof Error ? jpegErr.message : jpegErr}`,
@@ -95,6 +101,28 @@ async function fetchElginCompatibleZpl(token, id) {
     }
     return zpl;
   }
+}
+
+/** Converte ^GFA ... :Z64: ... para hex ASCII que a Elgin consegue imprimir. */
+function expandZ64ToAsciiHex(zpl) {
+  return String(zpl).replace(
+    /\^GFA,(\d+),(\d+),(\d+),:Z64:([A-Za-z0-9+/=]+)(?::[0-9A-Fa-f]{4})?/gi,
+    (full, _a, _b, bpr, b64) => {
+      const compressed = Buffer.from(b64, "base64");
+      let raw;
+      try {
+        raw = zlib.inflateSync(compressed);
+      } catch {
+        try {
+          raw = zlib.inflateRawSync(compressed);
+        } catch {
+          return full;
+        }
+      }
+      const hex = raw.toString("hex").toUpperCase();
+      return `^GFA,${raw.length},${raw.length},${bpr},${hex}`;
+    },
+  );
 }
 
 const EXTRA_DOC_RE =
