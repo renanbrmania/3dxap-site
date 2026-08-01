@@ -1,19 +1,22 @@
 import jpeg from "jpeg-js";
 
 /**
- * Converte JPEG (etiqueta ME) em ZPL ASCII hex para Elgin L42 100x150 @ 203dpi.
+ * Converte JPEG (etiqueta ME) em ZPL ASCII hex para Elgin L42 @ 203dpi.
  *
- * Importante: NAO forcar ^LL1218 com grafico menor — a L42 comeca a imprimir
- * “no meio” da bobina. Usamos tamanho do conteudo + sensor de gap (^MNY) e
- * ^LT negativo para puxar o desenho para o topo fisico da etiqueta.
+ * Config da impressora (utility Elgin): termico direto, altura 147mm,
+ * tipo Tarja Preta/Gap Reflexivo → ^MNW (nao ^MNY).
+ * Com a calibracao ok, ^LT0: LT negativo puxava o topo para a etiqueta anterior.
  */
 
 export const ELGIN_LABEL = {
-  width: 780,
-  height: 1100,
+  width: 800,
+  /** 147mm @ 203dpi ≈ 1175 dots (utility Elgin). */
+  height: 1176,
   dpi: 203,
-  /** Label Top negativo: sobe o conteudo (L42 imprime baixo / “no meio” sem isso). */
-  labelTop: -500,
+  /** 0 = alinhado ao sensor; negativo sobe (vaza na etiqueta de cima). */
+  labelTop: 0,
+  /** ^MNW = marca/reflexivo (igual ao travado na L42). */
+  mediaTracking: "W",
 };
 
 function resizeNearest(src, sw, sh, dw, dh) {
@@ -157,10 +160,11 @@ export function jpegToElginZpl(jpegBuffer, opts = {}) {
   const hex = toHex(bytes);
   const total = bytes.length;
 
-  // ^LL = altura do desenho (nao 1218 vazio). ^MNY = sensor de gap.
-  // ^LT negativo sobe o inicio da impressao na L42.
+  const mn = ELGIN_LABEL.mediaTracking || "W";
+  // ^LL = altura do desenho. ^MNW = tarja preta/reflexivo (config da L42).
   return `^XA
-^MNY
+^MN${mn}
+^MTD
 ^CI28
 ^PW${dw}
 ^LL${dh}
@@ -179,18 +183,18 @@ export function zplLooksLikeUnsupportedZ64(zpl) {
 /** Etiqueta de diagnostico: marca TOPO e MEIO para calibrar a Elgin. */
 export function buildCalibrationZpl() {
   return `^XA
-^MNY
+^MNW
+^MTD
 ^CI28
 ^PW800
-^LL1100
+^LL1176
 ^LH0,0
 ^LS0
-^LT-500
+^LT0
 ^FO40,20^A0N,48,48^FDTOPO DA ETIQUETA^FS
-^FO40,80^A0N,32,32^FDSe isto nao esta no topo fisico,^FS
-^FO40,120^A0N,32,32^FDcalibrar sensor na Elgin^FS
-^FO40,560^A0N,48,48^FDMEIO (y=560)^FS
-^FO40,1000^A0N,40,40^FDFIM^FS
+^FO40,80^A0N,32,32^FD147mm reflexivo LT0^FS
+^FO40,560^A0N,48,48^FDMEIO^FS
+^FO40,1100^A0N,40,40^FDFIM^FS
 ^XZ
 `;
 }

@@ -101,14 +101,23 @@ async function fetchElginCompatibleZpl(token, id) {
   }
 }
 
-/** Garante modo gap; nao forca ^LL1218 (isso deslocava o inicio para o meio). */
+/**
+ * L42 utility: Tarja Preta/Gap Reflexivo + 147mm.
+ * Forca ^MNW (nao gap transmissivo ^MNY) e ^LT0.
+ */
 function ensureStockLabelSize(zpl) {
   let out = String(zpl);
-  if (!/\^MNY/i.test(out) && !/\^MNN/i.test(out)) {
-    out = out.replace(/\^XA/i, "^XA\n^MNY");
+  out = out.replace(/\^MN[YNAW]/gi, "^MNW");
+  if (!/\^MNW/i.test(out) && !/\^MNN/i.test(out)) {
+    out = out.replace(/\^XA/i, "^XA\n^MNW");
   }
-  if (!/\^LT-?\d+/i.test(out)) {
-    out = out.replace(/\^XA/i, "^XA\n^LT-500");
+  if (/\^LT-?\d+/i.test(out)) {
+    out = out.replace(/\^LT-?\d+/gi, "^LT0");
+  } else {
+    out = out.replace(/\^XA/i, "^XA\n^LT0");
+  }
+  if (!/\^MTD/i.test(out) && !/\^MTT/i.test(out)) {
+    out = out.replace(/\^XA/i, "^XA\n^MTD");
   }
   return out;
 }

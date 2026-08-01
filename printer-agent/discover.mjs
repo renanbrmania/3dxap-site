@@ -221,12 +221,13 @@ export async function discoverElginPrinter({ preferMac = true, useCache = true }
 
 export async function sendZpl(zpl, { host, port = PRINTER.port } = {}) {
   const printer = host ? { ip: host, port } : await discoverElginPrinter();
-  // Prefixo: modo gap (bobina com etiqueta) — evita comecar no meio da etiqueta
-  const payload = String(zpl || "").trim();
+  // Prefixo: reflexivo/tarja preta (igual ao travado na L42 utility)
+  let payload = String(zpl || "").trim();
+  payload = payload.replace(/\^MN[YNAW]/gi, "^MNW");
   const withMedia =
-    /\^MNY/i.test(payload) || /\^MNN/i.test(payload) || /\^MNW/i.test(payload)
+    /\^MNW/i.test(payload) || /\^MNN/i.test(payload)
       ? payload
-      : `^XA^MNY^XZ\r\n${payload}`;
+      : `^XA^MNW^MTD^XZ\r\n${payload}`;
 
   await new Promise((resolve, reject) => {
     const socket = net.connect({ host: printer.ip, port: printer.port || port });
