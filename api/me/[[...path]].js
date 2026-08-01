@@ -9,6 +9,41 @@ import {
 } from "../_lib/me.js";
 
 /**
+ * ME devolve URL S3 ou ZPL cru. Resolve sempre para texto ZPL no servidor
+ * (fetch do browser na URL S3 falha com CORS / "Load failed" no Safari).
+ */
+async function resolveZplContent(payload) {
+  if (typeof payload === "string") {
+    const text = payload.trim();
+    if (text.startsWith("^XA") || text.includes("^XA")) return text;
+    if (/^https?:\/\//i.test(text)) {
+      const res = await fetch(text);
+      const body = await res.text();
+      if (!res.ok) {
+        throw new Error(`Falha ao baixar ZPL (${res.status}): ${body.slice(0, 200)}`);
+      }
+      return body;
+    }
+    // JSON stringificado com URL
+    try {
+      const parsed = JSON.parse(text);
+      return resolveZplContent(parsed);
+    } catch {
+      return text;
+    }
+  }
+  if (payload && typeof payload === "object") {
+    if (typeof payload.url === "string") return resolveZplContent(payload.url);
+    for (const v of Object.values(payload)) {
+      if (typeof v === "string" && (/^https?:\/\//i.test(v) || v.includes("^XA"))) {
+        return resolveZplContent(v);
+      }
+    }
+  }
+  throw new Error("Resposta ZPL do Melhor Envio em formato inesperado.");
+}
+
+/**
  * Unified Melhor Envio API handler for Vercel and local server.
  * Routes:
  *  GET  /api/me/config
@@ -160,8 +195,11 @@ export default async function handler(req, res) {
       } catch {
         /* se order falhar, ainda tenta o ZPL */
       }
+
       const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
-      sendJson(res, 200, { ok: true, data: file });
+      // ME costuma devolver URL S3; baixar no servidor evita CORS ("Load failed" no Safari)
+      const zpl = await resolveZplContent(file);
+      sendJson(res, 200, { ok: true, data: zpl });
       return;
     }
 

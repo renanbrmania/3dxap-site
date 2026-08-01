@@ -501,22 +501,22 @@ export async function printerAgentPrintTest() {
 export async function fetchZplText(orderId: string): Promise<string> {
   const result = await fetchZpl(orderId);
   const payload = result.data;
-  // API pode retornar URL string, objeto com url, ou ZPL cru
+  // API ja resolve URL S3 no servidor e devolve ZPL cru (evita CORS / Load failed)
   if (typeof payload === "string") {
     if (payload.trim().startsWith("^XA") || payload.includes("^XA")) return payload;
-    if (payload.startsWith("http")) {
-      const fileRes = await fetch(payload);
-      return await fileRes.text();
+    if (/^https?:\/\//i.test(payload)) {
+      throw new Error(
+        "API devolveu URL ZPL em vez do arquivo. Atualize a pagina e tente de novo (deploy pode estar atrasado).",
+      );
     }
     return payload;
   }
   if (payload && typeof payload === "object") {
     const url = (payload as { url?: string }).url || Object.values(payload)[0];
-    if (typeof url === "string" && url.startsWith("http")) {
-      const fileRes = await fetch(url);
-      return await fileRes.text();
+    if (typeof url === "string" && (url.includes("^XA") || url.trim().startsWith("^XA"))) {
+      return url;
     }
-    if (typeof url === "string") return url;
+    if (typeof url === "string" && !/^https?:\/\//i.test(url)) return url;
   }
   throw new Error("Não foi possível obter o ZPL da etiqueta.");
 }
