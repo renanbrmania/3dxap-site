@@ -238,7 +238,12 @@ export function QuoteBuilder({ onStatus }: Props) {
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-ink">Em andamento</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink">
+              Em andamento
+              {openDrafts.length > 0 ? (
+                <span className="ml-2 text-lg font-medium text-muted">({openDrafts.length})</span>
+              ) : null}
+            </h2>
             <p className="mt-1 text-sm text-muted">
               Orçamentos ainda abertos. Salva sozinho neste navegador para continuar depois.
             </p>
@@ -275,7 +280,14 @@ export function QuoteBuilder({ onStatus }: Props) {
 
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
         <div className="mb-4">
-          <h2 className="font-display text-2xl font-semibold text-ink">Biblioteca de orçamentos</h2>
+          <h2 className="font-display text-2xl font-semibold text-ink">
+            Biblioteca de orçamentos
+            {finalizedDrafts.length > 0 ? (
+              <span className="ml-2 text-lg font-medium text-muted">
+                ({finalizedDrafts.length})
+              </span>
+            ) : null}
+          </h2>
           <p className="mt-1 text-sm text-muted">
             Quando você gera o PDF, o orçamento fica guardado aqui. Use{" "}
             <strong className="font-semibold text-ink">Reutilizar</strong> para copiar itens e

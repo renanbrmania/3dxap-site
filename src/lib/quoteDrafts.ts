@@ -21,13 +21,22 @@ export type QuoteDraft = {
   shipping?: ShippingState;
 };
 
-function normalizeDraft(draft: QuoteDraft): QuoteDraft {
-  return {
-    ...draft,
-    shipping: draft.shipping
-      ? { ...emptyShippingState(), ...draft.shipping }
-      : emptyShippingState(),
-  };
+function normalizeDraft(draft: QuoteDraft): QuoteDraft | null {
+  try {
+    if (!draft?.id || !draft.data || typeof draft.data !== "object") return null;
+    const data = draft.data;
+    const itens = Array.isArray(data.itens) ? data.itens : [];
+    return {
+      ...draft,
+      status: draft.status === "finalized" ? "finalized" : "draft",
+      data: { ...data, itens },
+      shipping: draft.shipping
+        ? { ...emptyShippingState(), ...draft.shipping }
+        : emptyShippingState(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 function readAll(): QuoteDraft[] {
@@ -37,8 +46,8 @@ function readAll(): QuoteDraft[] {
     const parsed = JSON.parse(raw) as QuoteDraft[];
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((d) => d && typeof d.id === "string" && d.data)
       .map(normalizeDraft)
+      .filter((d): d is QuoteDraft => Boolean(d))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } catch {
     return [];
@@ -139,8 +148,10 @@ export function draftLabel(draft: QuoteDraft): string {
 }
 
 export function draftSummary(draft: QuoteDraft): string {
-  const itens = draft.data.itens.filter((i) => i.nome.trim()).length;
-  const total = quoteTotal(draft.data.itens);
+  const itens = Array.isArray(draft.data?.itens)
+    ? draft.data.itens.filter((i) => i?.nome?.trim()).length
+    : 0;
+  const total = quoteTotal(Array.isArray(draft.data?.itens) ? draft.data.itens : []);
   const totalLabel = total.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
