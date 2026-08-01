@@ -166,10 +166,16 @@ export default async function handler(req, res) {
 
     sendJson(res, 404, { ok: false, error: `Rota não encontrada: ${path}` });
   } catch (err) {
-    sendJson(res, err.status || 500, {
+    const message =
+      err instanceof Error
+        ? err.message
+        : typeof err === "string"
+          ? err
+          : JSON.stringify(err);
+    sendJson(res, err?.status || 500, {
       ok: false,
-      error: err.message || String(err),
-      details: err.data || null,
+      error: message || "Erro interno",
+      details: err?.data || null,
     });
   }
 }
