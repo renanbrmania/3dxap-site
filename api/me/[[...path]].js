@@ -142,15 +142,9 @@ export default async function handler(req, res) {
         sendJson(res, 400, { ok: false, error: "Informe id da etiqueta." });
         return;
       }
-      const data = await meFetch(`/api/v2/me/shipment/print?mode=private`, {
-        token,
-        method: "POST",
-        body: { orders: [id] },
-      }).catch(() => null);
-
-      // Arquivo ZPL dedicado
+      // Arquivo ZPL: so depois que o envio estiver com status "generated"
       const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
-      sendJson(res, 200, { ok: true, data: file, printLink: data });
+      sendJson(res, 200, { ok: true, data: file });
       return;
     }
 

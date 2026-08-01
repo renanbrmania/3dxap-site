@@ -234,24 +234,69 @@ export async function checkoutOrders(orderIds: string[]) {
     api("/checkout", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ orders: orderIds }),
+      body: JSON.stringify({ orders: orderIds.map(String) }),
     }),
   );
 }
 
 export async function generateOrders(orderIds: string[]) {
-  return withToken((token) =>
+  const ids = orderIds.map(String);
+  const result = await withToken((token) =>
     api("/generate", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ orders: orderIds }),
+      body: JSON.stringify({ orders: ids }),
     }),
+  );
+
+  const data = result.data;
+  if (data && typeof data === "object") {
+    for (const id of ids) {
+      const entry = (data as Record<string, { status?: boolean; message?: string }>)[id];
+      if (entry && entry.status === false) {
+        throw new Error(entry.message || `Falha ao gerar etiqueta ${id}`);
+      }
+    }
+  }
+  return result;
+}
+
+export async function fetchOrder(orderId: string) {
+  return withToken((token) =>
+    api(`/order?id=${encodeURIComponent(String(orderId))}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((r) => window.setTimeout(r, ms));
+}
+
+/** Espera o pedido ME atingir um dos status (ex.: released, generated). */
+export async function waitForOrderStatus(
+  orderId: string,
+  statuses: string[],
+  { attempts = 20, intervalMs = 1500 } = {},
+) {
+  let lastStatus = "";
+  for (let i = 0; i < attempts; i++) {
+    const result = await fetchOrder(orderId);
+    const status = String(result.data?.status || "").toLowerCase();
+    lastStatus = status;
+    if (statuses.map((s) => s.toLowerCase()).includes(status)) {
+      return result.data;
+    }
+    await sleep(intervalMs);
+  }
+  throw new Error(
+    `Pedido ME nao ficou pronto (status atual: ${lastStatus || "desconhecido"}). Esperado: ${statuses.join(", ")}.`,
   );
 }
 
 export async function fetchZpl(orderId: string) {
   return withToken((token) =>
-    api(`/print-zpl?id=${encodeURIComponent(orderId)}`, {
+    api(`/print-zpl?id=${encodeURIComponent(String(orderId))}`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
   );
@@ -340,6 +385,24 @@ export async function fetchZplText(orderId: string): Promise<string> {
     if (typeof url === "string") return url;
   }
   throw new Error("Não foi possível obter o ZPL da etiqueta.");
+}
+
+/** Tenta baixar ZPL com novas tentativas (ME as vezes demora a liberar apos generate). */
+export async function fetchZplTextWithRetry(orderId: string, attempts = 8) {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetchZplText(orderId);
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/E-PRT-0011|gerad|generat|422|404/i.test(msg) && i > 1) throw err;
+      await sleep(1500);
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("Nao foi possivel obter o ZPL apos varias tentativas.");
 }
 
 /** Solicita PDF de impressão no Melhor Envio (um ou vários pedidos). */

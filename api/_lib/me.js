@@ -68,10 +68,25 @@ export async function meFetch(path, { token, method = "GET", body } = {}) {
   }
 
   if (!res.ok) {
-    const err = new Error(
-      (data && typeof data === "object" && (data.message || data.error)) ||
-        `Melhor Envio ${res.status}`,
-    );
+    let msg = `Melhor Envio ${res.status}`;
+    if (typeof data === "string") msg = data;
+    else if (data && typeof data === "object") {
+      if (typeof data.message === "string") msg = data.message;
+      else if (typeof data.error === "string") msg = data.error;
+      else if (data.error && typeof data.error === "object") {
+        msg =
+          data.error.message ||
+          data.error.code ||
+          JSON.stringify(data.error);
+      } else {
+        try {
+          msg = JSON.stringify(data);
+        } catch {
+          /* keep default */
+        }
+      }
+    }
+    const err = new Error(msg);
     err.status = res.status;
     err.data = data;
     throw err;

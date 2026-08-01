@@ -4,7 +4,7 @@ import {
   calculateShipping,
   checkoutOrders,
   emptyRecipient,
-  fetchZplText,
+  fetchZplTextWithRetry,
   generateOrders,
   getAuthorizeUrl,
   getMeConfig,
@@ -13,6 +13,7 @@ import {
   onlyDigits,
   printerAgentHealth,
   printerAgentPrintZpl,
+  waitForOrderStatus,
   type MeQuoteOption,
   type ShippingState,
   type ShipRecipient,
@@ -230,13 +231,28 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
       };
 
       const cart = await addToCart(cartPayload);
-      const cartId = cart.data?.id;
+      const cartId = String(cart.data?.id || "");
       if (!cartId) throw new Error("Carrinho ME sem id de retorno.");
 
+      onStatus?.("Frete no carrinho. Pagando no Melhor Envio…");
       await checkoutOrders([cartId]);
+
+      onStatus?.("Pagamento ok. Aguardando liberacao…");
+      await waitForOrderStatus(cartId, ["released", "generated"], {
+        attempts: 15,
+        intervalMs: 1200,
+      });
+
+      onStatus?.("Gerando etiqueta…");
       await generateOrders([cartId]);
 
-      const zpl = await fetchZplText(cartId);
+      onStatus?.("Etiqueta gerada. Baixando ZPL…");
+      await waitForOrderStatus(cartId, ["generated"], {
+        attempts: 20,
+        intervalMs: 1500,
+      });
+
+      const zpl = await fetchZplTextWithRetry(cartId);
       const q = shipping.selectedQuote;
 
       await upsertLabelArchive({
