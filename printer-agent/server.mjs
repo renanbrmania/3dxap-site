@@ -1,6 +1,10 @@
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { discoverElginPrinter, sendZpl, PRINTER } from "./discover.mjs";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PRINTER_AGENT_PORT || 9109);
 
 function corsHeaders() {
@@ -22,6 +26,14 @@ function sendJson(res, status, body) {
   res.end(payload);
 }
 
+function sendHtml(res, status, html) {
+  res.writeHead(status, {
+    "Content-Type": "text/html; charset=utf-8",
+    ...corsHeaders(),
+  });
+  res.end(html);
+}
+
 async function readBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -29,6 +41,8 @@ async function readBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url || "/", `http://127.0.0.1:${PORT}`);
+
   // Preflight CORS + Private Network Access
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
@@ -40,24 +54,31 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    if (req.method === "GET" && (req.url === "/" || req.url?.startsWith("/health"))) {
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/health")) {
       sendJson(res, 200, {
         ok: true,
         service: "3dxap-printer-agent",
         expectedModel: "Elgin L42 PRO FULL",
         expectedMac: PRINTER.mac,
         printPort: PRINTER.port,
+        bridge: "/bridge",
       });
       return;
     }
 
-    if (req.method === "GET" && req.url?.startsWith("/discover")) {
+    if (req.method === "GET" && (url.pathname === "/bridge" || url.pathname === "/bridge.html")) {
+      const html = fs.readFileSync(path.join(__dirname, "bridge.html"), "utf8");
+      sendHtml(res, 200, html);
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/discover")) {
       const printer = await discoverElginPrinter();
       sendJson(res, 200, { ok: true, printer });
       return;
     }
 
-    if (req.method === "POST" && req.url?.startsWith("/print")) {
+    if (req.method === "POST" && url.pathname.startsWith("/print")) {
       const raw = await readBody(req);
       let zpl = raw;
       const contentType = req.headers["content-type"] || "";
@@ -74,7 +95,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    sendJson(res, 404, { ok: false, error: "Use GET /discover ou POST /print" });
+    sendJson(res, 404, { ok: false, error: "Use GET /health, GET /bridge ou POST /print" });
   } catch (err) {
     sendJson(res, 500, { ok: false, error: err instanceof Error ? err.message : String(err) });
   }
@@ -92,6 +113,7 @@ server.on("error", (err) => {
 
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`3dxap-printer-agent em http://127.0.0.1:${PORT}`);
-  console.log("GET  /discover  -> acha a Elgin na rede (DHCP)");
-  console.log("POST /print     -> descobre e envia ZPL");
+  console.log("GET  /bridge   -> ponte Safari/Chrome (postMessage)");
+  console.log("GET  /discover -> acha a Elgin na rede (DHCP)");
+  console.log("POST /print    -> descobre e envia ZPL");
 });

@@ -439,6 +439,116 @@ export async function fetchZpl(orderId: string) {
 export const PRINTER_AGENT_URL =
   import.meta.env.VITE_PRINTER_AGENT_URL || "http://127.0.0.1:9109";
 
+const BRIDGE_ORIGINS = new Set([
+  "http://127.0.0.1:9109",
+  "http://localhost:9109",
+]);
+
+function isNetworkAgentError(msg: string) {
+  return /load failed|failed to fetch|networkerror|cors|private network|blocked/i.test(msg);
+}
+
+function agentOfflineMessage() {
+  return "Nao foi possivel falar com o agent da Elgin em http://127.0.0.1:9109. No Mac: no Terminal rode `cd printer-agent && node server.mjs`. No Windows da Paula: iniciar-agent.bat. Se o Safari bloquear, o admin abre uma janela-ponte — permita o pop-up.";
+}
+
+/** Abre a ponte HTTP local (funciona no Safari, onde fetch HTTPS→HTTP falha). */
+function openPrinterBridge() {
+  const w = window.open(
+    `${PRINTER_AGENT_URL}/bridge`,
+    "3dxap-elgin-bridge",
+    "popup=yes,width=440,height=340",
+  );
+  return w;
+}
+
+function waitForBridgeReady(bridge: Window, timeoutMs = 12000) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      window.removeEventListener("message", onMessage);
+      reject(
+        new Error(
+          "Ponte do agent nao respondeu. Confira http://127.0.0.1:9109/health e permita pop-ups.",
+        ),
+      );
+    }, timeoutMs);
+
+    function onMessage(ev: MessageEvent) {
+      if (!BRIDGE_ORIGINS.has(ev.origin)) return;
+      if (ev.data?.type === "3dxap-bridge-ready" || ev.data?.type === "3dxap-pong") {
+        window.clearTimeout(timer);
+        window.removeEventListener("message", onMessage);
+        resolve();
+      }
+    }
+
+    window.addEventListener("message", onMessage);
+    // Pedido de ping caso ready tenha passado
+    window.setTimeout(() => {
+      try {
+        bridge.postMessage({ type: "3dxap-ping" }, PRINTER_AGENT_URL);
+      } catch {
+        /* ignore */
+      }
+    }, 300);
+  });
+}
+
+async function printViaBridge(zpl: string) {
+  const bridge = openPrinterBridge();
+  if (!bridge) {
+    throw new Error(
+      "Pop-up bloqueado. Permita pop-ups para este site (ou use Chrome) e tente de novo.",
+    );
+  }
+
+  await waitForBridgeReady(bridge);
+
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Timeout esperando impressao pela ponte. A Elgin esta ligada?"));
+    }, 90000);
+
+    function onMessage(ev: MessageEvent) {
+      if (!BRIDGE_ORIGINS.has(ev.origin)) return;
+      if (ev.data?.type !== "3dxap-print-result") return;
+      cleanup();
+      if (ev.data.ok) resolve(ev.data);
+      else reject(new Error(ev.data.error || "Falha ao imprimir via ponte."));
+    }
+
+    function cleanup() {
+      window.clearTimeout(timer);
+      window.removeEventListener("message", onMessage);
+    }
+
+    window.addEventListener("message", onMessage);
+    try {
+      bridge.postMessage({ type: "3dxap-print", zpl }, PRINTER_AGENT_URL);
+    } catch (err) {
+      cleanup();
+      reject(err instanceof Error ? err : new Error(String(err)));
+    }
+  });
+}
+
+async function healthViaBridge() {
+  const bridge = openPrinterBridge();
+  if (!bridge) {
+    throw new Error(
+      "Pop-up bloqueado. Permita pop-ups para este site (ou use Chrome) e tente de novo.",
+    );
+  }
+  await waitForBridgeReady(bridge);
+  try {
+    bridge.close();
+  } catch {
+    /* ignore */
+  }
+  return { ok: true, via: "bridge" };
+}
+
 export async function printerAgentHealth() {
   try {
     const res = await fetch(`${PRINTER_AGENT_URL}/health`);
@@ -446,12 +556,15 @@ export async function printerAgentHealth() {
     return res.json();
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (/load failed|failed to fetch|networkerror|cors|private network/i.test(msg)) {
-      throw new Error(
-        "Nao foi possivel falar com o agent da Elgin (http://127.0.0.1:9109). No PC da Paula: abra o 3dxap-printer-agent (iniciar-agent.bat) e tente de novo. Se o agent ja estiver aberto, use Chrome/Edge (nao Safari) e permita acesso a rede local se o navegador pedir.",
-      );
+    if (!isNetworkAgentError(msg)) {
+      throw err instanceof Error ? err : new Error(String(err));
     }
-    throw err instanceof Error ? err : new Error(String(err));
+    // Safari bloqueia fetch HTTPS→HTTP; tenta a ponte (janela local)
+    try {
+      return await healthViaBridge();
+    } catch {
+      throw new Error(agentOfflineMessage());
+    }
   }
 }
 
@@ -495,12 +608,12 @@ export async function printerAgentPrintZpl(zpl: string) {
     return data;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (/load failed|failed to fetch|networkerror|cors|private network/i.test(msg)) {
-      throw new Error(
-        "Falha ao enviar para a Elgin. Confira se o printer-agent esta rodando em http://127.0.0.1:9109/health no mesmo PC.",
-      );
+    // Erro retornado pelo agent (HTTP ok parse) — nao usar ponte
+    if (msg && !isNetworkAgentError(msg) && !(err instanceof TypeError)) {
+      throw err instanceof Error ? err : new Error(msg);
     }
-    throw err instanceof Error ? err : new Error(String(err));
+    // Safari/Chrome bloqueando HTTPS→HTTP: imprime pela janela-ponte local
+    return printViaBridge(payload);
   }
 }
 

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3DXAP · Ponte Elgin</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #f7f1ea;
+        color: #2a1f1c;
+      }
+      .card {
+        max-width: 360px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        font-size: 1.1rem;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        color: #5c4f4a;
+      }
+      #status {
+        margin-top: 14px;
+        font-weight: 600;
+        color: #7a2e45;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Ponte da Elgin</h1>
+      <p>
+        Janela auxiliar para o Safari/Chrome falar com a impressora. Pode fechar depois da
+        impressão.
+      </p>
+      <p id="status">Aguardando o admin 3DXAP…</p>
+    </div>
+    <script>
+      const ALLOWED =
+        /^https?:\/\/([a-z0-9-]+\.)*3dxap\.com\.br(?::\d+)?$|^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?$/i;
+      const statusEl = document.getElementById("status");
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function reply(source, origin, payload) {
+        try {
+          source.postMessage(payload, origin);
+        } catch (err) {
+          setStatus("Falha ao responder o admin: " + err);
+        }
+      }
+
+      window.addEventListener("message", async (ev) => {
+        if (!ALLOWED.test(ev.origin)) return;
+        const data = ev.data || {};
+
+        if (data.type === "3dxap-ping") {
+          reply(ev.source, ev.origin, { type: "3dxap-pong", ok: true });
+          setStatus("Agent online. Pode imprimir pelo admin.");
+          return;
+        }
+
+        if (data.type === "3dxap-print") {
+          const zpl = String(data.zpl || "");
+          if (!zpl.trim()) {
+            reply(ev.source, ev.origin, {
+              type: "3dxap-print-result",
+              ok: false,
+              error: "ZPL vazio.",
+            });
+            setStatus("ZPL vazio.");
+            return;
+          }
+          setStatus("Enviando para a Elgin…");
+          try {
+            const res = await fetch("/print", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ zpl }),
+            });
+            const json = await res.json().catch(() => ({}));
+            const ok = res.ok && json.ok !== false;
+            reply(ev.source, ev.origin, {
+              type: "3dxap-print-result",
+              ok,
+              error: json.error,
+              printedOn: json.printedOn,
+            });
+            setStatus(ok ? "Impresso. Pode fechar esta janela." : json.error || "Falha ao imprimir.");
+            if (ok) window.setTimeout(() => window.close(), 1200);
+          } catch (err) {
+            const msg = err && err.message ? err.message : String(err);
+            reply(ev.source, ev.origin, {
+              type: "3dxap-print-result",
+              ok: false,
+              error: msg,
+            });
+            setStatus("Erro: " + msg);
+          }
+        }
+      });
+
+      // Avisa o admin que a ponte esta pronta
+      function announce() {
+        if (window.opener) {
+          try {
+            window.opener.postMessage({ type: "3dxap-bridge-ready" }, "*");
+            setStatus("Ponte pronta. Imprimindo…");
+          } catch (err) {
+            setStatus("Abra esta janela a partir do admin 3DXAP.");
+          }
+        } else {
+          setStatus("Agent no ar. Volte ao admin e clique em Imprimir de novo.");
+        }
+      }
+      announce();
+      window.setTimeout(announce, 200);
+    </script>
+  </body>
+</html>
