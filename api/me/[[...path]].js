@@ -142,7 +142,24 @@ export default async function handler(req, res) {
         sendJson(res, 400, { ok: false, error: "Informe id da etiqueta." });
         return;
       }
-      // Arquivo ZPL: so depois que o envio estiver com status "generated"
+      // Confere status antes — E-PRT-0011 = ainda nao gerado
+      try {
+        const order = await meFetch(`/api/v2/me/orders/${id}`, { token });
+        const status = String(order?.status || "").toLowerCase();
+        const ready = ["generated", "posted", "delivered", "received", "in_transit"].includes(
+          status,
+        );
+        if (!ready && !order?.generated_at) {
+          sendJson(res, 409, {
+            ok: false,
+            error: `E-PRT-0011: envio ainda nao gerado (status: ${status || "desconhecido"}).`,
+            data: { status, id },
+          });
+          return;
+        }
+      } catch {
+        /* se order falhar, ainda tenta o ZPL */
+      }
       const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
       sendJson(res, 200, { ok: true, data: file });
       return;

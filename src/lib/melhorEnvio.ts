@@ -252,6 +252,11 @@ function unwrapGenerateMap(data: unknown): Record<string, GenerateEntry> {
     if (nested.details && typeof nested.details === "object") {
       return nested.details as Record<string, GenerateEntry>;
     }
+    // Se data for o mapa uuid -> {status,message}
+    const nestedEntries = Object.values(nested).filter(
+      (v) => v && typeof v === "object" && "status" in (v as object),
+    );
+    if (nestedEntries.length > 0) return nested as Record<string, GenerateEntry>;
   }
   return obj as Record<string, GenerateEntry>;
 }
@@ -269,33 +274,30 @@ function isGenerateSuccess(entry: GenerateEntry) {
   return entry.status === true || entry.status === 1 || entry.status === "1";
 }
 
+function isAlreadyGeneratedMessage(msg: string) {
+  return /j[aá]\s+(foi\s+)?gerad|already\s+generat|gerado com sucesso/i.test(msg);
+}
+
 function assertGenerateOk(data: unknown, ids: string[]) {
   const map = unwrapGenerateMap(data);
-  const entries = Object.entries(map).filter(
-    ([, v]) => v && typeof v === "object" && ("status" in v || "message" in v),
+  const statusEntries = Object.entries(map).filter(
+    ([, v]) => v && typeof v === "object" && "status" in v,
   );
 
-  for (const [, entry] of entries) {
-    if (!isGenerateSuccess(entry as GenerateEntry)) {
-      const msg = (entry as GenerateEntry).message;
-      if (msg && /j[aá]\s+(foi\s+)?gerad|already\s+generat/i.test(msg)) continue;
-      throw new Error(msg || "Falha ao gerar etiqueta no Melhor Envio.");
-    }
-  }
-
   for (const id of ids) {
-    const entry = findGenerateEntry(map, id);
+    let entry = findGenerateEntry(map, id);
+    if (!entry && statusEntries.length === 1) {
+      entry = statusEntries[0][1];
+    }
     if (!entry) {
-      if (entries.length === 0) {
-        throw new Error(
-          `Melhor Envio nao confirmou a geracao (${id}). Resposta: ${JSON.stringify(data).slice(0, 350)}`,
-        );
-      }
+      throw new Error(
+        `Melhor Envio nao confirmou a geracao (${id}). Resposta: ${JSON.stringify(data).slice(0, 400)}`,
+      );
+    }
+    if (isGenerateSuccess(entry) || isAlreadyGeneratedMessage(String(entry.message || ""))) {
       continue;
     }
-    if (!isGenerateSuccess(entry)) {
-      throw new Error(entry.message || `Falha ao gerar etiqueta ${id}`);
-    }
+    throw new Error(entry.message || `Falha ao gerar etiqueta ${id}`);
   }
 }
 
@@ -326,6 +328,39 @@ function sleep(ms: number) {
 
 const READY_STATUSES = ["generated", "posted", "delivered", "received", "in_transit"];
 
+export function extractOrderStatus(order: unknown): string {
+  if (!order || typeof order !== "object") return "";
+  const obj = order as Record<string, unknown>;
+  if (typeof obj.status === "string") return obj.status.toLowerCase();
+  if (obj.status && typeof obj.status === "object") {
+    const nested = obj.status as Record<string, unknown>;
+    if (typeof nested.name === "string") return nested.name.toLowerCase();
+    if (typeof nested.status === "string") return nested.status.toLowerCase();
+  }
+  if (obj.order && typeof obj.order === "object") {
+    return extractOrderStatus(obj.order);
+  }
+  return "";
+}
+
+function orderLooksGenerated(order: unknown): boolean {
+  const status = extractOrderStatus(order);
+  if (READY_STATUSES.includes(status)) return true;
+  if (!order || typeof order !== "object") return false;
+  const obj = order as Record<string, unknown>;
+  return Boolean(obj.generated_at);
+}
+
+export function isJadlogQuote(q: { name?: string; company?: { name?: string } } | null | undefined) {
+  if (!q) return false;
+  return /jadlog/i.test(q.company?.name || "") || /jadlog/i.test(q.name || "");
+}
+
+export function isAzulQuote(q: { name?: string; company?: { name?: string } } | null | undefined) {
+  if (!q) return false;
+  return /azul/i.test(q.company?.name || "") || /azul/i.test(q.name || "");
+}
+
 /** Espera o pedido ME atingir um dos status (ex.: released, generated). */
 export async function waitForOrderStatus(
   orderId: string,
@@ -335,9 +370,9 @@ export async function waitForOrderStatus(
   let lastStatus = "";
   for (let i = 0; i < attempts; i++) {
     const result = await fetchOrder(orderId);
-    const status = String(result.data?.status || "").toLowerCase();
+    const status = extractOrderStatus(result.data);
     lastStatus = status;
-    if (statuses.map((s) => s.toLowerCase()).includes(status)) {
+    if (statuses.map((s) => s.toLowerCase()).includes(status) || orderLooksGenerated(result.data)) {
       return result.data;
     }
     await sleep(intervalMs);
@@ -348,34 +383,32 @@ export async function waitForOrderStatus(
 }
 
 /**
- * Chama generate e espera status generated (re-tenta generate se ficar em released).
- * Se a API confirmar sucesso mas o status atrasar, segue mesmo assim para o ZPL.
+ * Chama generate e so retorna quando o pedido estiver realmente gerado.
+ * Nunca segue para ZPL com status released — isso causa E-PRT-0011.
  */
 export async function ensureOrderGenerated(
   orderId: string,
-  { attempts = 24, intervalMs = 2000 } = {},
+  { attempts = 30, intervalMs = 2000 } = {},
 ) {
   let lastStatus = "";
-  let generateConfirmed = false;
   let lastGenerateError = "";
+  let lastGenerateRaw = "";
 
   for (let i = 0; i < attempts; i++) {
     const result = await fetchOrder(orderId);
-    const status = String(result.data?.status || "").toLowerCase();
-    lastStatus = status;
-    if (READY_STATUSES.includes(status)) return result.data;
+    lastStatus = extractOrderStatus(result.data);
+    if (orderLooksGenerated(result.data)) return result.data;
 
-    // Re-chama generate no inicio e a cada 3 tentativas enquanto estiver liberado.
-    if (status === "released" || status === "pending" || !status) {
-      if (i === 0 || i % 3 === 0) {
+    if (lastStatus === "released" || lastStatus === "pending" || !lastStatus) {
+      if (i === 0 || i % 2 === 0) {
         try {
-          await generateOrders([orderId]);
-          generateConfirmed = true;
+          const gen = await generateOrders([orderId]);
+          lastGenerateRaw = JSON.stringify(gen.data).slice(0, 350);
           lastGenerateError = "";
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (/j[aá]\s+(foi\s+)?gerad|already\s+generat|gerado com sucesso/i.test(msg)) {
-            generateConfirmed = true;
+          if (isAlreadyGeneratedMessage(msg)) {
+            lastGenerateError = "";
           } else {
             lastGenerateError = msg;
           }
@@ -383,20 +416,16 @@ export async function ensureOrderGenerated(
       }
     }
 
-    // API confirmou generate: depois de algumas leituras, segue (status às vezes atrasa).
-    if (generateConfirmed && i >= 4) {
-      return result.data;
-    }
-
     await sleep(intervalMs);
   }
 
-  if (generateConfirmed) return { id: orderId, status: lastStatus };
-
-  throw new Error(
-    lastGenerateError ||
-      `Pedido ME nao ficou gerado (status atual: ${lastStatus || "desconhecido"}).`,
-  );
+  const parts = [
+    `Etiqueta nao ficou gerada no Melhor Envio (status: ${lastStatus || "desconhecido"}).`,
+  ];
+  if (lastGenerateError) parts.push(`Erro generate: ${lastGenerateError}`);
+  if (lastGenerateRaw) parts.push(`Resposta generate: ${lastGenerateRaw}`);
+  parts.push("No sandbox, ZPL so funciona com Jadlog — escolha Jadlog na cotacao.");
+  throw new Error(parts.join(" "));
 }
 
 export async function fetchZpl(orderId: string) {
@@ -493,16 +522,25 @@ export async function fetchZplText(orderId: string): Promise<string> {
 }
 
 /** Tenta baixar ZPL com novas tentativas (ME as vezes demora a liberar apos generate). */
-export async function fetchZplTextWithRetry(orderId: string, attempts = 8) {
+export async function fetchZplTextWithRetry(orderId: string, attempts = 10) {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
+      const order = await fetchOrder(orderId);
+      if (!orderLooksGenerated(order.data) && i > 0 && i % 2 === 0) {
+        try {
+          await generateOrders([orderId]);
+        } catch {
+          /* segue tentando ZPL */
+        }
+        await sleep(1000);
+      }
       return await fetchZplText(orderId);
     } catch (err) {
       lastErr = err;
       const msg = err instanceof Error ? err.message : String(err);
       if (!/E-PRT-0011|gerad|generat|422|404/i.test(msg) && i > 1) throw err;
-      await sleep(1500);
+      await sleep(2000);
     }
   }
   throw lastErr instanceof Error

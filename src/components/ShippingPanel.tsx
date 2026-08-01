@@ -8,6 +8,8 @@ import {
   fetchZplTextWithRetry,
   getAuthorizeUrl,
   getMeConfig,
+  isAzulQuote,
+  isJadlogQuote,
   loadMeTokens,
   clearMeTokens,
   onlyDigits,
@@ -39,11 +41,15 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
   const [busy, setBusy] = useState(false);
   const [meConnected, setMeConnected] = useState(Boolean(loadMeTokens()?.access_token));
   const [meConfigured, setMeConfigured] = useState(false);
+  const [meEnv, setMeEnv] = useState("sandbox");
   const [agentOnline, setAgentOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
     getMeConfig()
-      .then((cfg) => setMeConfigured(Boolean(cfg.configured || cfg.clientIdConfigured)))
+      .then((cfg) => {
+        setMeConfigured(Boolean(cfg.configured || cfg.clientIdConfigured));
+        if (typeof cfg.env === "string") setMeEnv(String(cfg.env).toLowerCase());
+      })
       .catch(() => setMeConfigured(false));
     printerAgentHealth()
       .then(() => setAgentOnline(true))
@@ -97,17 +103,22 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
 
       const result = await calculateShipping(payload);
       const list = (Array.isArray(result.data) ? result.data : []) as MeQuoteOption[];
-      const valid = list.filter((q) => !q.error && q.id);
+      const valid = list
+        .filter((q) => !q.error && q.id)
+        .sort((a, b) => Number(isJadlogQuote(b)) - Number(isJadlogQuote(a)));
+      const preferred = valid.find((q) => isJadlogQuote(q)) || valid[0] || null;
       patch({
         quotes: valid,
         status: valid.length ? "cotado" : shipping.status,
-        selectedServiceId: valid[0]?.id ?? null,
-        selectedQuote: valid[0] ?? null,
+        selectedServiceId: preferred?.id ?? null,
+        selectedQuote: preferred,
         lastError: valid.length ? "" : "Nenhuma cotação disponível para esses dados.",
       });
       onStatus?.(
         valid.length
-          ? `${valid.length} opções de frete encontradas.`
+          ? meEnv === "sandbox" && preferred && isJadlogQuote(preferred)
+            ? `${valid.length} opções. Jadlog selecionada (obrigatória p/ ZPL no sandbox).`
+            : `${valid.length} opções de frete encontradas.`
           : "Cotação sem opções. Confira CEP e medidas.",
       );
     } catch (err) {
@@ -153,6 +164,11 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
     try {
       if (!shipping.selectedQuote?.id) throw new Error("Selecione uma opção de frete.");
       if (!shipping.invoiceKey) throw new Error("Importe o XML da NF antes de comprar a etiqueta.");
+      if (meEnv === "sandbox" && !isJadlogQuote(shipping.selectedQuote)) {
+        throw new Error(
+          "No sandbox do Melhor Envio, arquivo ZPL so funciona com Jadlog. Selecione Jadlog na cotacao e tente de novo.",
+        );
+      }
       const recipient = shipping.recipient;
       if (!recipient?.name || !recipient.postal_code) {
         throw new Error("Destinatário incompleto. Importe o XML ou preencha os dados.");
@@ -224,7 +240,10 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
           reminder: quote.numero,
           invoice: {
             key: shipping.invoiceKey,
-            xml_content: shipping.invoiceXmlContent || "",
+            // xml_content so e exigido pela Azul Cargo
+            ...(isAzulQuote(shipping.selectedQuote) && shipping.invoiceXmlContent
+              ? { xml_content: shipping.invoiceXmlContent }
+              : {}),
           },
           tags: [{ tag: quote.numero, url: null }],
         },
