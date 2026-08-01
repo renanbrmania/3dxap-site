@@ -273,6 +273,25 @@ export async function printerAgentDiscover() {
   return data.printer;
 }
 
+/** Discover com timeout — a varredura de rede no Windows pode demorar. */
+export async function printerAgentDiscoverTimed(timeoutMs = 25000) {
+  const result = await Promise.race([
+    printerAgentDiscover(),
+    new Promise<never>((_, reject) =>
+      window.setTimeout(
+        () =>
+          reject(
+            new Error(
+              "Busca demorou demais. Confira Wi-Fi da Elgin e se o agent esta em http://127.0.0.1:9109/health",
+            ),
+          ),
+        timeoutMs,
+      ),
+    ),
+  ]);
+  return result;
+}
+
 export async function printerAgentPrintZpl(zpl: string) {
   const res = await fetch(`${PRINTER_AGENT_URL}/print`, {
     method: "POST",
@@ -282,6 +301,22 @@ export async function printerAgentPrintZpl(zpl: string) {
   const data = await res.json();
   if (!res.ok || data.ok === false) throw new Error(data.error || "Falha ao imprimir");
   return data;
+}
+
+/** Etiqueta minima para validar a Elgin. */
+export function buildTestLabelZpl() {
+  return `^XA
+^CI28
+^FO40,40^A0N,48,48^FD3DXAP - TESTE^FS
+^FO40,100^A0N,32,32^FDImpressora OK^FS
+^FO40,150^A0N,28,28^FD${new Date().toLocaleString("pt-BR")}^FS
+^XZ
+`;
+}
+
+export async function printerAgentPrintTest() {
+  await printerAgentHealth();
+  return printerAgentPrintZpl(buildTestLabelZpl());
 }
 
 export async function fetchZplText(orderId: string): Promise<string> {

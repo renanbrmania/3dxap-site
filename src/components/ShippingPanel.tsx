@@ -11,8 +11,9 @@ import {
   loadMeTokens,
   clearMeTokens,
   onlyDigits,
-  printerAgentDiscover,
+  printerAgentDiscoverTimed,
   printerAgentHealth,
+  printerAgentPrintTest,
   printerAgentPrintZpl,
   type MeQuoteOption,
   type ShippingState,
@@ -570,18 +571,27 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
             type="button"
             disabled={busy}
             onClick={async () => {
+              setBusy(true);
+              onStatus?.("Testando impressora… aguarde (pode levar ate 30s).");
               try {
-                const p = await printerAgentDiscover();
+                await printerAgentHealth();
                 setAgentOnline(true);
-                onStatus?.(`Elgin encontrada: ${p.ip}`);
+                const p = await printerAgentDiscoverTimed(30000);
+                const printed = await printerAgentPrintTest();
+                setAgentOnline(true);
+                onStatus?.(
+                  `Teste OK — Elgin ${p.ip}. Etiqueta enviada (${printed.printedOn?.ip || p.ip}).`,
+                );
               } catch (err) {
                 setAgentOnline(false);
                 onStatus?.(err instanceof Error ? err.message : String(err));
+              } finally {
+                setBusy(false);
               }
             }}
             className="admin-btn admin-btn-secondary"
           >
-            Testar impressora
+            {busy ? "Testando…" : "Testar impressora"}
           </button>
         </div>
 

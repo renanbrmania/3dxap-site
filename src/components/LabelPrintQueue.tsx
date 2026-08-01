@@ -11,7 +11,9 @@ import {
   extractPrintUrl,
   fetchPrintPdf,
   loadMeTokens,
+  printerAgentDiscoverTimed,
   printerAgentHealth,
+  printerAgentPrintTest,
   printerAgentPrintZpl,
 } from "../lib/melhorEnvio";
 import { buildZip, downloadBlob } from "../lib/zipDownload";
@@ -43,6 +45,8 @@ export function LabelPrintQueue({ onStatus }: Props) {
   const [items, setItems] = useState<LabelArchiveItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [localMsg, setLocalMsg] = useState("");
   const [range, setRange] = useState<Range>("today");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [agentOnline, setAgentOnline] = useState<boolean | null>(null);
@@ -50,6 +54,11 @@ export function LabelPrintQueue({ onStatus }: Props) {
   const cloudOn = labelArchiveCloudEnabled();
 
   const visible = useMemo(() => filterLabelsByRange(items, range), [items, range]);
+
+  function notify(message: string) {
+    setLocalMsg(message);
+    onStatus?.(message);
+  }
 
   async function refresh() {
     setLoading(true);
@@ -73,6 +82,27 @@ export function LabelPrintQueue({ onStatus }: Props) {
       return new Set([...prev].filter((id) => ids.has(id)));
     });
   }, [visible]);
+
+  async function handleTestPrinter() {
+    setTesting(true);
+    notify("Testando agent e buscando a Elgin na rede… pode levar alguns segundos.");
+    try {
+      await printerAgentHealth();
+      setAgentOnline(true);
+      notify("Agent online. Procurando impressora…");
+      const printer = await printerAgentDiscoverTimed(30000);
+      notify(`Elgin encontrada: ${printer.ip}:${printer.port || 9100}. Enviando etiqueta de teste…`);
+      const printed = await printerAgentPrintTest();
+      notify(
+        `Teste OK — etiqueta enviada para ${printed.printedOn?.ip || printer.ip}. Confira a Elgin.`,
+      );
+    } catch (err) {
+      setAgentOnline(false);
+      notify(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTesting(false);
+    }
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -99,11 +129,11 @@ export function LabelPrintQueue({ onStatus }: Props) {
 
   async function handlePrintBatch() {
     if (!selectedItems.length) {
-      onStatus?.("Selecione ao menos uma etiqueta.");
+      notify("Selecione ao menos uma etiqueta.");
       return;
     }
     setBusy(true);
-    onStatus?.("");
+    notify("");
     try {
       await printerAgentHealth();
       setAgentOnline(true);
@@ -116,11 +146,11 @@ export function LabelPrintQueue({ onStatus }: Props) {
       }
       await markLabelsPrinted(printedIds);
       await refresh();
-      onStatus?.(`${printedIds.length} etiqueta(s) enviada(s) à Elgin.`);
+      notify(`${printedIds.length} etiqueta(s) enviada(s) à Elgin.`);
       clearSelection();
     } catch (err) {
       setAgentOnline(false);
-      onStatus?.(err instanceof Error ? err.message : String(err));
+      notify(err instanceof Error ? err.message : String(err));
       await refresh();
     } finally {
       setBusy(false);
@@ -129,7 +159,7 @@ export function LabelPrintQueue({ onStatus }: Props) {
 
   function handleDownloadZip() {
     if (!selectedItems.length) {
-      onStatus?.("Selecione ao menos uma etiqueta.");
+      notify("Selecione ao menos uma etiqueta.");
       return;
     }
     const files = selectedItems.map((item, idx) => ({
@@ -139,28 +169,28 @@ export function LabelPrintQueue({ onStatus }: Props) {
     const zip = buildZip(files);
     const day = new Date().toISOString().slice(0, 10);
     downloadBlob(zip, `etiquetas-3dxap-${day}.zip`);
-    onStatus?.(`ZIP com ${files.length} ZPL baixado (backup).`);
+    notify(`ZIP com ${files.length} ZPL baixado (backup).`);
   }
 
   async function handleDownloadPdf() {
     if (!selectedItems.length) {
-      onStatus?.("Selecione ao menos uma etiqueta.");
+      notify("Selecione ao menos uma etiqueta.");
       return;
     }
     if (!meConnected) {
-      onStatus?.("Conecte o Melhor Envio na aba Envios para baixar o PDF.");
+      notify("Conecte o Melhor Envio na aba Envios para baixar o PDF.");
       return;
     }
     setBusy(true);
-    onStatus?.("");
+    notify("");
     try {
       const result = await fetchPrintPdf(selectedItems.map((i) => i.id));
       const url = extractPrintUrl(result.data);
       if (!url) throw new Error("Melhor Envio não retornou URL do PDF.");
       window.open(url, "_blank", "noopener,noreferrer");
-      onStatus?.("PDF do Melhor Envio aberto — use como backup ou impressão manual.");
+      notify("PDF do Melhor Envio aberto — use como backup ou impressão manual.");
     } catch (err) {
-      onStatus?.(err instanceof Error ? err.message : String(err));
+      notify(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -170,7 +200,7 @@ export function LabelPrintQueue({ onStatus }: Props) {
     if (!confirm(`Remover etiqueta ${item.quoteNumero || item.id} do arquivo?`)) return;
     await removeLabelArchive(item.id);
     await refresh();
-    onStatus?.("Etiqueta removida do arquivo.");
+    notify("Etiqueta removida do arquivo.");
   }
 
   return (
@@ -184,14 +214,30 @@ export function LabelPrintQueue({ onStatus }: Props) {
               {cloudOn ? " Arquivo também na nuvem (Supabase)." : " Arquivo neste navegador."}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            className="admin-btn admin-btn-secondary admin-btn-sm"
-          >
-            Atualizar
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={testing || busy}
+              onClick={() => void handleTestPrinter()}
+              className="admin-btn admin-btn-olive"
+            >
+              {testing ? "Testando…" : "Testar impressora"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+            >
+              Atualizar
+            </button>
+          </div>
         </div>
+
+        {localMsg ? (
+          <p className="mb-4 rounded-2xl bg-blush/80 px-4 py-3 text-sm font-medium text-ink ring-1 ring-rosa/20">
+            {localMsg}
+          </p>
+        ) : null}
 
         <div className="mb-4 flex flex-wrap gap-2 text-xs">
           <span

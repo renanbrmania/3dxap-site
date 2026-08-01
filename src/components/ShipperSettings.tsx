@@ -5,8 +5,9 @@ import {
   getMeConfig,
   loadMeTokens,
   onlyDigits,
-  printerAgentDiscover,
+  printerAgentDiscoverTimed,
   printerAgentHealth,
+  printerAgentPrintTest,
   PRINTER_AGENT_URL,
 } from "../lib/melhorEnvio";
 import {
@@ -78,12 +79,16 @@ export function ShipperSettings({ onStatus }: Props) {
 
   async function testPrinter() {
     setBusy(true);
+    onStatus?.("Testando impressora… aguarde (pode levar ate 30s).");
     try {
       await printerAgentHealth();
-      const printer = await printerAgentDiscover();
+      const printer = await printerAgentDiscoverTimed(30000);
       setAgentOnline(true);
       setAgentIp(printer.ip || "");
-      onStatus?.(`Elgin encontrada em ${printer.ip}:${printer.port || 9100}`);
+      const printed = await printerAgentPrintTest();
+      onStatus?.(
+        `Teste OK — Elgin ${printer.ip}:${printer.port || 9100}. Etiqueta enviada (${printed.printedOn?.ip || printer.ip}).`,
+      );
     } catch (err) {
       setAgentOnline(false);
       setAgentIp("");
