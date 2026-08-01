@@ -143,18 +143,12 @@ export function LabelPrintQueue({ onStatus }: Props) {
       const printedIds: string[] = [];
       for (let i = 0; i < selectedItems.length; i++) {
         const item = selectedItems[i];
-        notify(`Imprimindo ${i + 1}/${selectedItems.length}: ${item.cliente || item.quoteNumero || item.id}…`);
-        let zpl = item.zpl || "";
-        // ZPL do ME com :Z64: a Elgin recebe mas nao imprime — reconverte via JPEG
-        if (!zpl.trim() || /:Z64:/i.test(zpl)) {
-          notify(`Preparando etiqueta ${item.quoteNumero || item.id} para a Elgin…`);
-          zpl = await fetchZplText(item.id);
-          if (zpl && !/:Z64:/i.test(zpl)) {
-            await upsertLabelArchive({ id: item.id, zpl, status: item.status });
-          }
-        }
-        zpl = extractShippingLabelZpl(zpl);
+        notify(`Preparando ${i + 1}/${selectedItems.length} para a Elgin (100×150)…`);
+        // Sempre regenera ZPL a partir do JPEG do ME — sizing certo e sem Z64
+        const zpl = extractShippingLabelZpl(await fetchZplText(item.id));
         if (!zpl.trim()) throw new Error(`Etiqueta ${item.quoteNumero || item.id}: ZPL invalido.`);
+        await upsertLabelArchive({ id: item.id, zpl, status: item.status });
+        notify(`Imprimindo ${i + 1}/${selectedItems.length}: ${item.cliente || item.quoteNumero || item.id}…`);
         await printerAgentPrintZpl(zpl);
         printedIds.push(item.id);
         await sleep(400);
