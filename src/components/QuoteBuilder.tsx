@@ -6,7 +6,7 @@ import {
   formatDraftDate,
   listQuoteDrafts,
   removeQuoteDraft,
-  reuseQuoteDraft,
+  reuseQuoteForNewClient,
   saveQuoteDraft,
   type QuoteDraft,
 } from "../lib/quoteDrafts";
@@ -23,6 +23,13 @@ import {
   type QuoteItem,
 } from "../lib/quotePdf";
 import { emptyShippingState, type ShippingState } from "../lib/melhorEnvio";
+import {
+  listQuoteLibrary,
+  quoteLibraryCloudEnabled,
+  removeQuoteLibrary,
+  upsertQuoteLibrary,
+  type QuoteLibraryItem,
+} from "../lib/quoteLibrary";
 import { ShippingPanel } from "./ShippingPanel";
 
 type Props = {
@@ -75,6 +82,8 @@ function handleQuoteFieldKeyDown(
 
 export function QuoteBuilder({ onStatus }: Props) {
   const [drafts, setDrafts] = useState<QuoteDraft[]>(() => listQuoteDrafts());
+  const [library, setLibrary] = useState<QuoteLibraryItem[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(true);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [quote, setQuote] = useState<QuoteData>(() => createDefaultQuote());
   const [shipping, setShipping] = useState<ShippingState>(() => emptyShippingState());
@@ -86,11 +95,32 @@ export function QuoteBuilder({ onStatus }: Props) {
   const total = useMemo(() => quoteTotal(quote.itens), [quote.itens]);
   const activeDraft = drafts.find((d) => d.id === draftId) ?? null;
   const openDrafts = drafts.filter((d) => d.status === "draft");
-  const finalizedDrafts = drafts.filter((d) => d.status === "finalized");
+  const cloudOn = quoteLibraryCloudEnabled();
 
   function refreshDrafts() {
     setDrafts(listQuoteDrafts());
   }
+
+  async function refreshLibrary() {
+    setLibraryLoading(true);
+    try {
+      const localFinalized = listQuoteDrafts().filter((d) => d.status === "finalized");
+      for (const d of localFinalized) {
+        try {
+          await upsertQuoteLibrary(d.id, d.data);
+        } catch {
+          /* tabela ainda não criada — local já foi gravado */
+        }
+      }
+      setLibrary(await listQuoteLibrary());
+    } finally {
+      setLibraryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshLibrary();
+  }, []);
 
   function setField<K extends keyof QuoteData>(key: K, value: QuoteData[K]) {
     setQuote((prev) => ({ ...prev, [key]: value }));
@@ -179,8 +209,8 @@ export function QuoteBuilder({ onStatus }: Props) {
     onStatus?.("Orçamento excluído.");
   }
 
-  function handleReuse(draft: QuoteDraft) {
-    const created = reuseQuoteDraft(draft);
+  function handleReuseLibrary(item: QuoteLibraryItem) {
+    const created = createQuoteDraft(reuseQuoteForNewClient(item.data));
     skipAutoSave.current = true;
     setDraftId(created.id);
     setQuote(structuredClone(created.data));
@@ -189,11 +219,35 @@ export function QuoteBuilder({ onStatus }: Props) {
     setLastSavedAt(created.updatedAt);
     refreshDrafts();
     onStatus?.(
-      `Modelo reutilizado de "${draftLabel(draft)}". Troque o cliente e ajuste o que precisar.`,
+      `Modelo reutilizado de "${item.cliente || item.numero}". Troque o cliente e ajuste o que precisar.`,
     );
     window.setTimeout(() => {
       document.getElementById("quote-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
+  }
+
+  function openLibraryItem(item: QuoteLibraryItem) {
+    skipAutoSave.current = true;
+    const created = createQuoteDraft(structuredClone(item.data));
+    setDraftId(created.id);
+    setQuote(structuredClone(item.data));
+    setShipping(emptyShippingState());
+    setDirty(false);
+    setLastSavedAt(created.updatedAt);
+    refreshDrafts();
+    onStatus?.(`Biblioteca: aberto "${item.cliente || item.numero}".`);
+    window.setTimeout(() => {
+      document.getElementById("quote-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  async function handleDeleteLibrary(item: QuoteLibraryItem) {
+    if (!confirm(`Excluir da biblioteca "${item.cliente || item.numero}"?`)) return;
+    await removeQuoteLibrary(item.id);
+    removeQuoteDraft(item.id);
+    await refreshLibrary();
+    refreshDrafts();
+    onStatus?.("Removido da biblioteca.");
   }
 
   async function handleDownload() {
@@ -201,10 +255,23 @@ export function QuoteBuilder({ onStatus }: Props) {
     onStatus?.("");
     try {
       await downloadQuotePdf(quote);
-      persist("finalized");
-      onStatus?.(
-        "PDF baixado. Orçamento guardado na biblioteca para reutilizar com outro cliente.",
-      );
+      const saved = persist("finalized");
+      try {
+        await upsertQuoteLibrary(saved.id, quote);
+        await refreshLibrary();
+        onStatus?.(
+          cloudOn
+            ? "PDF baixado e salvo na biblioteca (nuvem). Use Reutilizar para outro cliente."
+            : "PDF baixado e salvo na biblioteca deste navegador.",
+        );
+      } catch (libErr) {
+        await refreshLibrary();
+        onStatus?.(
+          libErr instanceof Error
+            ? `PDF ok. Biblioteca local salva — nuvem: ${libErr.message}`
+            : "PDF ok. Biblioteca local salva; falhou sync na nuvem.",
+        );
+      }
     } catch (err) {
       console.error("[quotePdf]", err);
       onStatus?.(
@@ -279,37 +346,48 @@ export function QuoteBuilder({ onStatus }: Props) {
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
-        <div className="mb-4">
-          <h2 className="font-display text-2xl font-semibold text-ink">
-            Biblioteca de orçamentos
-            {finalizedDrafts.length > 0 ? (
-              <span className="ml-2 text-lg font-medium text-muted">
-                ({finalizedDrafts.length})
-              </span>
-            ) : null}
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            Quando você gera o PDF, o orçamento fica guardado aqui. Use{" "}
-            <strong className="font-semibold text-ink">Reutilizar</strong> para copiar itens e
-            valores para um novo cliente — só troca o nome e o que precisar.
-          </p>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-ink">
+              Biblioteca de orçamentos
+              {library.length > 0 ? (
+                <span className="ml-2 text-lg font-medium text-muted">({library.length})</span>
+              ) : null}
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Ao gerar o PDF, o orçamento entra aqui
+              {cloudOn ? " (nuvem Supabase — qualquer aparelho)" : " (neste navegador)"}. Use{" "}
+              <strong className="font-semibold text-ink">Reutilizar</strong> para copiar itens e
+              preços para um novo cliente.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshLibrary()}
+            className="admin-btn admin-btn-secondary admin-btn-sm"
+          >
+            Atualizar
+          </button>
         </div>
 
-        {finalizedDrafts.length === 0 ? (
+        {libraryLoading ? (
+          <p className="rounded-2xl bg-cream/80 px-4 py-3 text-sm text-muted ring-1 ring-rosa/10">
+            Carregando biblioteca…
+          </p>
+        ) : library.length === 0 ? (
           <p className="rounded-2xl bg-olive-soft/60 px-4 py-3 text-sm text-muted ring-1 ring-olive/15">
-            Ainda vazio. Finalize um orçamento com PDF e ele aparece nesta biblioteca.
+            Ainda vazio. Clique em <strong className="text-ink">Finalizar e baixar PDF</strong> para
+            guardar o orçamento aqui e reaproveitar depois.
           </p>
         ) : (
           <div className="space-y-2">
-            {finalizedDrafts.map((draft) => (
-              <DraftRow
-                key={draft.id}
-                draft={draft}
-                active={draft.id === draftId}
-                mode="library"
-                onOpen={() => openDraft(draft)}
-                onReuse={() => handleReuse(draft)}
-                onDelete={() => handleDeleteDraft(draft.id)}
+            {library.map((item) => (
+              <LibraryRow
+                key={item.id}
+                item={item}
+                onOpen={() => openLibraryItem(item)}
+                onReuse={() => handleReuseLibrary(item)}
+                onDelete={() => void handleDeleteLibrary(item)}
               />
             ))}
           </div>
@@ -604,6 +682,50 @@ export function QuoteBuilder({ onStatus }: Props) {
         onChange={updateShipping}
         onStatus={onStatus}
       />
+    </div>
+  );
+}
+
+function LibraryRow({
+  item,
+  onOpen,
+  onReuse,
+  onDelete,
+}: {
+  item: QuoteLibraryItem;
+  onOpen: () => void;
+  onReuse: () => void;
+  onDelete: () => void;
+}) {
+  const summaryDraft = {
+    id: item.id,
+    status: "finalized" as const,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    data: item.data,
+  };
+
+  return (
+    <div className="admin-card flex flex-wrap items-center gap-3 rounded-2xl border border-olive/20 bg-olive-soft/40 p-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold text-ink">{item.cliente || "Cliente sem nome"}</p>
+        <p className="text-sm text-muted">
+          {item.numero} · {draftSummary(summaryDraft)}
+        </p>
+        <p className="text-xs text-muted">Salvo {formatDraftDate(item.updatedAt)}</p>
+      </div>
+      <span className="rounded-full bg-olive-soft px-2.5 py-1 text-xs font-semibold text-olive ring-1 ring-olive/25">
+        Biblioteca
+      </span>
+      <button type="button" onClick={onReuse} className="admin-btn admin-btn-primary admin-btn-sm">
+        Reutilizar
+      </button>
+      <button type="button" onClick={onOpen} className="admin-btn admin-btn-secondary admin-btn-sm">
+        Abrir
+      </button>
+      <button type="button" onClick={onDelete} className="admin-btn admin-btn-danger admin-btn-sm">
+        Excluir
+      </button>
     </div>
   );
 }
