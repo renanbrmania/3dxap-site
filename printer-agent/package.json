@@ -8,5 +8,8 @@
     "discover": "node discover.mjs",
     "start": "node server.mjs",
     "print-test": "node print-test.mjs"
+  },
+  "dependencies": {
+    "jpeg-js": "^0.4.4"
   }
 }

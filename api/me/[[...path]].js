@@ -7,6 +7,7 @@ import {
   readJsonBody,
   sendJson,
 } from "../_lib/me.js";
+import { jpegToElginZpl, zplLooksLikeUnsupportedZ64 } from "../_lib/jpegToZpl.js";
 
 /**
  * ME devolve URL S3 ou ZPL cru. Resolve sempre para texto ZPL no servidor
@@ -41,6 +42,59 @@ async function resolveZplContent(payload) {
     }
   }
   throw new Error("Resposta ZPL do Melhor Envio em formato inesperado.");
+}
+
+/** Baixa JPEG (bytes) a partir da resposta ME (URL, JSON, Buffer ou binario). */
+async function resolveJpegBuffer(payload) {
+  if (Buffer.isBuffer(payload)) return payload;
+  if (payload instanceof Uint8Array) return Buffer.from(payload);
+  if (payload && typeof payload === "object" && payload.type === "Buffer" && Array.isArray(payload.data)) {
+    return Buffer.from(payload.data);
+  }
+  if (typeof payload === "string") {
+    const text = payload.trim();
+    if (/^https?:\/\//i.test(text)) {
+      const res = await fetch(text);
+      if (!res.ok) throw new Error(`Falha ao baixar JPEG (${res.status})`);
+      return Buffer.from(await res.arrayBuffer());
+    }
+    try {
+      const parsed = JSON.parse(text);
+      return resolveJpegBuffer(parsed);
+    } catch {
+      // base64 puro?
+      if (/^[A-Za-z0-9+/=\s]+$/.test(text) && text.length > 200) {
+        return Buffer.from(text.replace(/\s/g, ""), "base64");
+      }
+    }
+  }
+  if (payload && typeof payload === "object") {
+    if (typeof payload.url === "string") return resolveJpegBuffer(payload.url);
+    if (typeof payload.jpeg === "string") return resolveJpegBuffer(payload.jpeg);
+    for (const v of Object.values(payload)) {
+      if (typeof v === "string" && /^https?:\/\//i.test(v)) return resolveJpegBuffer(v);
+    }
+  }
+  throw new Error("Resposta JPEG do Melhor Envio em formato inesperado.");
+}
+
+async function fetchElginCompatibleZpl(token, id) {
+  // Preferir JPEG → ZPL ASCII (Elgin nao imprime Z64 do ME)
+  try {
+    const jpegPayload = await meFetch(`/api/v2/me/imprimir/jpeg/${id}`, { token });
+    const buf = await resolveJpegBuffer(jpegPayload);
+    return jpegToElginZpl(buf);
+  } catch (jpegErr) {
+    const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
+    const raw = await resolveZplContent(file);
+    const zpl = extractShippingLabelZpl(raw);
+    if (zplLooksLikeUnsupportedZ64(zpl)) {
+      throw new Error(
+        `Etiqueta Z64 nao suportada pela Elgin e JPEG falhou: ${jpegErr instanceof Error ? jpegErr.message : jpegErr}`,
+      );
+    }
+    return zpl;
+  }
 }
 
 const EXTRA_DOC_RE =
@@ -228,10 +282,7 @@ export default async function handler(req, res) {
         /* se order falhar, ainda tenta o ZPL */
       }
 
-      const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
-      // ME costuma devolver URL S3; baixar no servidor evita CORS ("Load failed" no Safari)
-      const raw = await resolveZplContent(file);
-      const zpl = extractShippingLabelZpl(raw);
+      const zpl = await fetchElginCompatibleZpl(token, id);
       sendJson(res, 200, { ok: true, data: zpl });
       return;
     }

@@ -5,11 +5,13 @@ import {
   listLabelArchive,
   markLabelsPrinted,
   removeLabelArchive,
+  upsertLabelArchive,
   type LabelArchiveItem,
 } from "../lib/labelArchive";
 import {
   extractPrintUrl,
   fetchPrintPdf,
+  fetchZplText,
   loadMeTokens,
   printerAgentDiscoverTimed,
   printerAgentHealth,
@@ -142,9 +144,17 @@ export function LabelPrintQueue({ onStatus }: Props) {
       for (let i = 0; i < selectedItems.length; i++) {
         const item = selectedItems[i];
         notify(`Imprimindo ${i + 1}/${selectedItems.length}: ${item.cliente || item.quoteNumero || item.id}…`);
-        if (!item.zpl.trim()) throw new Error(`Etiqueta ${item.quoteNumero || item.id} sem ZPL.`);
-        const zpl = extractShippingLabelZpl(item.zpl);
-        if (!zpl.trim()) throw new Error(`Etiqueta ${item.quoteNumero || item.id}: ZPL invalido apos filtro.`);
+        let zpl = item.zpl || "";
+        // ZPL do ME com :Z64: a Elgin recebe mas nao imprime — reconverte via JPEG
+        if (!zpl.trim() || /:Z64:/i.test(zpl)) {
+          notify(`Preparando etiqueta ${item.quoteNumero || item.id} para a Elgin…`);
+          zpl = await fetchZplText(item.id);
+          if (zpl && !/:Z64:/i.test(zpl)) {
+            await upsertLabelArchive({ id: item.id, zpl, status: item.status });
+          }
+        }
+        zpl = extractShippingLabelZpl(zpl);
+        if (!zpl.trim()) throw new Error(`Etiqueta ${item.quoteNumero || item.id}: ZPL invalido.`);
         await printerAgentPrintZpl(zpl);
         printedIds.push(item.id);
         await sleep(400);

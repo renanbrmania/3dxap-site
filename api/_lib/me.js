@@ -54,6 +54,17 @@ export async function meFetch(path, { token, method = "GET", body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
+  const contentType = res.headers.get("content-type") || "";
+  if (/^image\//i.test(contentType) || /octet-stream/i.test(contentType)) {
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (!res.ok) {
+      const err = new Error(`Melhor Envio ${res.status} (arquivo binario)`);
+      err.status = res.status;
+      throw err;
+    }
+    return buf;
+  }
+
   const text = await res.text();
   let data = null;
   const looksZpl = text.trim().startsWith("^XA") || text.includes("^XA");
