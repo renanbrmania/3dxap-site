@@ -1,5 +1,6 @@
 import type { QuoteData } from "./quotePdf";
 import { getSupabase, hasCloudBackend } from "./store";
+import { QUOTE_LIBRARY_SEED } from "./quoteLibrarySeed";
 
 const LOCAL_KEY = "3dxap-quote-library-v1";
 
@@ -48,10 +49,56 @@ function writeLocal(items: QuoteLibraryItem[]) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
 }
 
+function mergeUnique(items: QuoteLibraryItem[]): QuoteLibraryItem[] {
+  const map = new Map<string, QuoteLibraryItem>();
+  for (const item of items) {
+    if (!item?.id) continue;
+    map.set(item.id, item);
+  }
+  return Array.from(map.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+/** Garante Rede Tintou + Simone Matias na biblioteca (recuperados dos PDFs). */
+export async function ensureQuoteLibrarySeeds(): Promise<QuoteLibraryItem[]> {
+  const local = readLocal();
+  const missing = QUOTE_LIBRARY_SEED.filter((seed) => !local.some((x) => x.id === seed.id));
+  let next = local;
+  if (missing.length) {
+    next = mergeUnique([...missing, ...local]);
+    writeLocal(next);
+  }
+
+  const client = getSupabase();
+  if (client) {
+    for (const seed of QUOTE_LIBRARY_SEED) {
+      try {
+        await client.from("quote_library").upsert(
+          {
+            id: seed.id,
+            cliente: seed.cliente,
+            numero: seed.numero,
+            data_label: seed.dataLabel,
+            payload: seed.data,
+            created_at: seed.createdAt,
+            updated_at: seed.updatedAt,
+          },
+          { onConflict: "id" },
+        );
+      } catch (err) {
+        console.warn("[quote_library] seed sync failed", err);
+      }
+    }
+  }
+
+  return next;
+}
+
 export async function listQuoteLibrary(): Promise<QuoteLibraryItem[]> {
+  await ensureQuoteLibrarySeeds();
+
   const client = getSupabase();
   if (!client) {
-    return readLocal().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return mergeUnique([...readLocal(), ...QUOTE_LIBRARY_SEED]);
   }
 
   const { data, error } = await client
@@ -61,10 +108,10 @@ export async function listQuoteLibrary(): Promise<QuoteLibraryItem[]> {
 
   if (error) {
     console.warn("[quote_library] list failed, using local", error);
-    return readLocal().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return mergeUnique([...readLocal(), ...QUOTE_LIBRARY_SEED]);
   }
 
-  const items = (data ?? []).map(fromRow);
+  const items = mergeUnique([...(data ?? []).map(fromRow), ...QUOTE_LIBRARY_SEED, ...readLocal()]);
   writeLocal(items);
   return items;
 }
