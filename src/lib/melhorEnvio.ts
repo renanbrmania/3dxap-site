@@ -440,9 +440,19 @@ export const PRINTER_AGENT_URL =
   import.meta.env.VITE_PRINTER_AGENT_URL || "http://127.0.0.1:9109";
 
 export async function printerAgentHealth() {
-  const res = await fetch(`${PRINTER_AGENT_URL}/health`);
-  if (!res.ok) throw new Error("Printer agent offline");
-  return res.json();
+  try {
+    const res = await fetch(`${PRINTER_AGENT_URL}/health`);
+    if (!res.ok) throw new Error("Printer agent offline");
+    return res.json();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/load failed|failed to fetch|networkerror|cors|private network/i.test(msg)) {
+      throw new Error(
+        "Nao foi possivel falar com o agent da Elgin (http://127.0.0.1:9109). No PC da Paula: abra o 3dxap-printer-agent (iniciar-agent.bat) e tente de novo. Se o agent ja estiver aberto, use Chrome/Edge (nao Safari) e permita acesso a rede local se o navegador pedir.",
+      );
+    }
+    throw err instanceof Error ? err : new Error(String(err));
+  }
 }
 
 export async function printerAgentDiscover() {
@@ -472,14 +482,26 @@ export async function printerAgentDiscoverTimed(timeoutMs = 25000) {
 }
 
 export async function printerAgentPrintZpl(zpl: string) {
-  const res = await fetch(`${PRINTER_AGENT_URL}/print`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ zpl }),
-  });
-  const data = await res.json();
-  if (!res.ok || data.ok === false) throw new Error(data.error || "Falha ao imprimir");
-  return data;
+  const payload = String(zpl || "").trim();
+  if (!payload) throw new Error("ZPL vazio — nao ha etiqueta para imprimir.");
+  try {
+    const res = await fetch(`${PRINTER_AGENT_URL}/print`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ zpl: payload }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error(data.error || "Falha ao imprimir");
+    return data;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/load failed|failed to fetch|networkerror|cors|private network/i.test(msg)) {
+      throw new Error(
+        "Falha ao enviar para a Elgin. Confira se o printer-agent esta rodando em http://127.0.0.1:9109/health no mesmo PC.",
+      );
+    }
+    throw err instanceof Error ? err : new Error(String(err));
+  }
 }
 
 /** Etiqueta minima para validar a Elgin. */

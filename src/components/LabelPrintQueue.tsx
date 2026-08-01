@@ -134,21 +134,24 @@ export function LabelPrintQueue({ onStatus }: Props) {
       return;
     }
     setBusy(true);
-    notify("");
+    notify("Conectando ao agent da Elgin…");
     try {
       await printerAgentHealth();
       setAgentOnline(true);
       const printedIds: string[] = [];
-      for (const item of selectedItems) {
+      for (let i = 0; i < selectedItems.length; i++) {
+        const item = selectedItems[i];
+        notify(`Imprimindo ${i + 1}/${selectedItems.length}: ${item.cliente || item.quoteNumero || item.id}…`);
         if (!item.zpl.trim()) throw new Error(`Etiqueta ${item.quoteNumero || item.id} sem ZPL.`);
-        // Só etiqueta de frete (sem declaração/recibo extras do ME)
-        await printerAgentPrintZpl(extractShippingLabelZpl(item.zpl));
+        const zpl = extractShippingLabelZpl(item.zpl);
+        if (!zpl.trim()) throw new Error(`Etiqueta ${item.quoteNumero || item.id}: ZPL invalido apos filtro.`);
+        await printerAgentPrintZpl(zpl);
         printedIds.push(item.id);
         await sleep(400);
       }
       await markLabelsPrinted(printedIds);
       await refresh();
-      notify(`${printedIds.length} etiqueta(s) enviada(s) à Elgin.`);
+      notify(`${printedIds.length} etiqueta(s) enviada(s) à Elgin. Confira se saiu papel na impressora.`);
       clearSelection();
     } catch (err) {
       setAgentOnline(false);
@@ -249,6 +252,11 @@ export function LabelPrintQueue({ onStatus }: Props) {
           >
             Elgin agent: {agentOnline == null ? "…" : agentOnline ? "online" : "offline"}
           </span>
+          {agentOnline === false ? (
+            <span className="rounded-full bg-sand/80 px-2.5 py-1 font-semibold text-rosa-deep">
+              Abra o iniciar-agent.bat no PC da impressora
+            </span>
+          ) : null}
           <span
             className={`rounded-full px-2.5 py-1 font-semibold ${
               meConnected ? "bg-olive-soft text-olive" : "bg-sand/80 text-ink"

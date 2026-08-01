@@ -3,13 +3,21 @@ import { discoverElginPrinter, sendZpl, PRINTER } from "./discover.mjs";
 
 const PORT = Number(process.env.PRINTER_AGENT_PORT || 9109);
 
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    // Chrome/Edge: site HTTPS (3dxap) → agent em 127.0.0.1
+    "Access-Control-Allow-Private-Network": "true",
+  };
+}
+
 function sendJson(res, status, body) {
   const payload = JSON.stringify(body, null, 2);
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    ...corsHeaders(),
   });
   res.end(payload);
 }
@@ -21,8 +29,13 @@ async function readBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
+  // Preflight CORS + Private Network Access
   if (req.method === "OPTIONS") {
-    sendJson(res, 204, {});
+    res.writeHead(204, {
+      ...corsHeaders(),
+      "Access-Control-Max-Age": "86400",
+    });
+    res.end();
     return;
   }
 
