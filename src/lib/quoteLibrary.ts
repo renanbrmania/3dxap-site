@@ -71,22 +71,19 @@ export async function ensureQuoteLibrarySeeds(): Promise<QuoteLibraryItem[]> {
   const client = getSupabase();
   if (client) {
     for (const seed of QUOTE_LIBRARY_SEED) {
-      try {
-        await client.from("quote_library").upsert(
-          {
-            id: seed.id,
-            cliente: seed.cliente,
-            numero: seed.numero,
-            data_label: seed.dataLabel,
-            payload: seed.data,
-            created_at: seed.createdAt,
-            updated_at: seed.updatedAt,
-          },
-          { onConflict: "id" },
-        );
-      } catch (err) {
-        console.warn("[quote_library] seed sync failed", err);
-      }
+      const { error } = await client.from("quote_library").upsert(
+        {
+          id: seed.id,
+          cliente: seed.cliente,
+          numero: seed.numero,
+          data_label: seed.dataLabel,
+          payload: seed.data,
+          created_at: seed.createdAt,
+          updated_at: seed.updatedAt,
+        },
+        { onConflict: "id" },
+      );
+      if (error) console.warn("[quote_library] seed sync failed", error.message);
     }
   }
 
