@@ -80,18 +80,16 @@ async function resolveJpegBuffer(payload) {
 }
 
 async function fetchElginCompatibleZpl(token, id) {
-  // Preferir JPEG → ZPL ASCII (Elgin nao imprime Z64 do ME)
+  // JPEG → ZPL encaixado na bobina (Z64 nativo a Elgin engole e nao imprime)
   try {
     const jpegPayload = await meFetch(`/api/v2/me/imprimir/jpeg/${id}`, { token });
     const buf = await resolveJpegBuffer(jpegPayload);
-    const zpl = jpegToElginZpl(buf);
-    return zpl;
+    return jpegToElginZpl(buf);
   } catch (jpegErr) {
     const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
     const raw = await resolveZplContent(file);
     let zpl = extractShippingLabelZpl(raw);
     if (zplLooksLikeUnsupportedZ64(zpl)) {
-      // Tenta expandir Z64 → hex ASCII (mantem layout original do ME)
       zpl = expandZ64ToAsciiHex(zpl);
     }
     if (zplLooksLikeUnsupportedZ64(zpl)) {
@@ -99,8 +97,18 @@ async function fetchElginCompatibleZpl(token, id) {
         `Etiqueta Z64 nao suportada pela Elgin e JPEG falhou: ${jpegErr instanceof Error ? jpegErr.message : jpegErr}`,
       );
     }
-    return zpl;
+    return ensureStockLabelSize(zpl);
   }
+}
+
+/** Garante ^PW/^LL de bobina 100x150. */
+function ensureStockLabelSize(zpl) {
+  let out = String(zpl);
+  if (/\^PW\d+/i.test(out)) out = out.replace(/\^PW\d+/i, "^PW812");
+  else out = out.replace(/\^XA/i, "^XA\n^PW812");
+  if (/\^LL\d+/i.test(out)) out = out.replace(/\^LL\d+/i, "^LL1218");
+  else out = out.replace(/\^XA/i, "^XA\n^LL1218");
+  return out;
 }
 
 /** Converte ^GFA ... :Z64: ... para hex ASCII que a Elgin consegue imprimir. */

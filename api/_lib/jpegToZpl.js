@@ -8,10 +8,15 @@ import jpeg from "jpeg-js";
  * - Escala para caber na area util (sem centralizar — centralizar gerava topo vazio)
  */
 
-/** Area util um pouco menor que 812x1218 para nao cortar no gap da bobina. */
+/**
+ * Area util CONSERVADORA dentro da bobina 100x150 @ 203dpi (812x1218).
+ * Valores cheios cortavam o rodape (o "1" grande e os codigos de barras).
+ */
 export const ELGIN_LABEL = {
-  width: 800,
-  height: 1100,
+  width: 760,
+  height: 920,
+  fullWidth: 812,
+  fullHeight: 1218,
   dpi: 203,
 };
 
@@ -162,15 +167,20 @@ export function jpegToElginZpl(jpegBuffer, opts = {}) {
   const hex = toHex(bytes);
   const total = bytes.length;
 
-  // ^LL = altura do conteudo (nao forca 1218 com espaco vazio em cima)
+  // Bobina fixa 100x150; grafico menor encaixado no topo com margem
+  const stockW = opts.fullWidth || ELGIN_LABEL.fullWidth;
+  const stockH = opts.fullHeight || ELGIN_LABEL.fullHeight;
+  const marginX = Math.max(0, Math.floor((stockW - dw) / 2));
+  const marginY = 16;
+
   return `^XA
 ^CI28
-^PW${dw}
-^LL${dh}
+^PW${stockW}
+^LL${stockH}
 ^LH0,0
 ^LS0
 ^LT0
-^FO0,0^GFA,${total},${total},${bytesPerRow},${hex}^FS
+^FO${marginX},${marginY}^GFA,${total},${total},${bytesPerRow},${hex}^FS
 ^XZ
 `;
 }
