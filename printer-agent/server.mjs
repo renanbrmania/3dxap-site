@@ -67,8 +67,18 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+server.on("error", (err) => {
+  if (err && err.code === "EADDRINUSE") {
+    console.log(`Porta ${PORT} ja em uso — agent provavelmente ja esta rodando.`);
+    console.log(`Teste: http://127.0.0.1:${PORT}/health`);
+    process.exit(0);
+  }
+  console.error(err);
+  process.exit(1);
+});
+
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`3dxap-printer-agent em http://127.0.0.1:${PORT}`);
-  console.log("GET  /discover  → acha a Elgin na rede (DHCP)");
-  console.log("POST /print     → descobre e envia ZPL");
+  console.log("GET  /discover  -> acha a Elgin na rede (DHCP)");
+  console.log("POST /print     -> descobre e envia ZPL");
 });

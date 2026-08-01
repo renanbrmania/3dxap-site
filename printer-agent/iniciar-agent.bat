@@ -1,9 +1,8 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 title 3DXAP Printer Agent
 echo.
-echo  3DXAP — Printer Agent (Elgin)
+echo  3DXAP - Printer Agent (Elgin)
 echo  Nao feche esta janela enquanto for imprimir.
 echo  ----------------------------------------------
 echo.
