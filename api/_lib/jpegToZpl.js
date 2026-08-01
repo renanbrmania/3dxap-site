@@ -12,8 +12,8 @@ export const ELGIN_LABEL = {
   width: 780,
   height: 1100,
   dpi: 203,
-  /** Label Top negativo: sobe o conteudo (L42 costuma imprimir baixo demais). */
-  labelTop: -120,
+  /** Label Top negativo: sobe o conteudo (L42 imprime baixo / “no meio” sem isso). */
+  labelTop: -500,
 };
 
 function resizeNearest(src, sw, sh, dw, dh) {
@@ -182,15 +182,15 @@ export function buildCalibrationZpl() {
 ^MNY
 ^CI28
 ^PW800
-^LL1200
+^LL1100
 ^LH0,0
 ^LS0
-^LT-120
+^LT-500
 ^FO40,20^A0N,48,48^FDTOPO DA ETIQUETA^FS
 ^FO40,80^A0N,32,32^FDSe isto nao esta no topo fisico,^FS
-^FO40,120^A0N,32,32^FDcalibrar sensor / ^LT^FS
+^FO40,120^A0N,32,32^FDcalibrar sensor na Elgin^FS
 ^FO40,560^A0N,48,48^FDMEIO (y=560)^FS
-^FO40,1100^A0N,40,40^FDFIM^FS
+^FO40,1000^A0N,40,40^FDFIM^FS
 ^XZ
 `;
 }

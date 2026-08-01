@@ -108,7 +108,7 @@ function ensureStockLabelSize(zpl) {
     out = out.replace(/\^XA/i, "^XA\n^MNY");
   }
   if (!/\^LT-?\d+/i.test(out)) {
-    out = out.replace(/\^XA/i, "^XA\n^LT-120");
+    out = out.replace(/\^XA/i, "^XA\n^LT-500");
   }
   return out;
 }
