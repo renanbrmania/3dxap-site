@@ -239,6 +239,66 @@ export async function checkoutOrders(orderIds: string[]) {
   );
 }
 
+type GenerateEntry = { status?: boolean | number | string; message?: string };
+
+function unwrapGenerateMap(data: unknown): Record<string, GenerateEntry> {
+  if (!data || typeof data !== "object") return {};
+  const obj = data as Record<string, unknown>;
+  if (obj.details && typeof obj.details === "object") {
+    return obj.details as Record<string, GenerateEntry>;
+  }
+  if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data)) {
+    const nested = obj.data as Record<string, unknown>;
+    if (nested.details && typeof nested.details === "object") {
+      return nested.details as Record<string, GenerateEntry>;
+    }
+  }
+  return obj as Record<string, GenerateEntry>;
+}
+
+function findGenerateEntry(map: Record<string, GenerateEntry>, orderId: string) {
+  if (map[orderId]) return map[orderId];
+  const lower = orderId.toLowerCase();
+  for (const [key, value] of Object.entries(map)) {
+    if (key.toLowerCase() === lower && value && typeof value === "object") return value;
+  }
+  return null;
+}
+
+function isGenerateSuccess(entry: GenerateEntry) {
+  return entry.status === true || entry.status === 1 || entry.status === "1";
+}
+
+function assertGenerateOk(data: unknown, ids: string[]) {
+  const map = unwrapGenerateMap(data);
+  const entries = Object.entries(map).filter(
+    ([, v]) => v && typeof v === "object" && ("status" in v || "message" in v),
+  );
+
+  for (const [, entry] of entries) {
+    if (!isGenerateSuccess(entry as GenerateEntry)) {
+      const msg = (entry as GenerateEntry).message;
+      if (msg && /j[aá]\s+(foi\s+)?gerad|already\s+generat/i.test(msg)) continue;
+      throw new Error(msg || "Falha ao gerar etiqueta no Melhor Envio.");
+    }
+  }
+
+  for (const id of ids) {
+    const entry = findGenerateEntry(map, id);
+    if (!entry) {
+      if (entries.length === 0) {
+        throw new Error(
+          `Melhor Envio nao confirmou a geracao (${id}). Resposta: ${JSON.stringify(data).slice(0, 350)}`,
+        );
+      }
+      continue;
+    }
+    if (!isGenerateSuccess(entry)) {
+      throw new Error(entry.message || `Falha ao gerar etiqueta ${id}`);
+    }
+  }
+}
+
 export async function generateOrders(orderIds: string[]) {
   const ids = orderIds.map(String);
   const result = await withToken((token) =>
@@ -248,16 +308,7 @@ export async function generateOrders(orderIds: string[]) {
       body: JSON.stringify({ orders: ids }),
     }),
   );
-
-  const data = result.data;
-  if (data && typeof data === "object") {
-    for (const id of ids) {
-      const entry = (data as Record<string, { status?: boolean; message?: string }>)[id];
-      if (entry && entry.status === false) {
-        throw new Error(entry.message || `Falha ao gerar etiqueta ${id}`);
-      }
-    }
-  }
+  assertGenerateOk(result.data, ids);
   return result;
 }
 
@@ -272,6 +323,8 @@ export async function fetchOrder(orderId: string) {
 function sleep(ms: number) {
   return new Promise((r) => window.setTimeout(r, ms));
 }
+
+const READY_STATUSES = ["generated", "posted", "delivered", "received", "in_transit"];
 
 /** Espera o pedido ME atingir um dos status (ex.: released, generated). */
 export async function waitForOrderStatus(
@@ -291,6 +344,58 @@ export async function waitForOrderStatus(
   }
   throw new Error(
     `Pedido ME nao ficou pronto (status atual: ${lastStatus || "desconhecido"}). Esperado: ${statuses.join(", ")}.`,
+  );
+}
+
+/**
+ * Chama generate e espera status generated (re-tenta generate se ficar em released).
+ * Se a API confirmar sucesso mas o status atrasar, segue mesmo assim para o ZPL.
+ */
+export async function ensureOrderGenerated(
+  orderId: string,
+  { attempts = 24, intervalMs = 2000 } = {},
+) {
+  let lastStatus = "";
+  let generateConfirmed = false;
+  let lastGenerateError = "";
+
+  for (let i = 0; i < attempts; i++) {
+    const result = await fetchOrder(orderId);
+    const status = String(result.data?.status || "").toLowerCase();
+    lastStatus = status;
+    if (READY_STATUSES.includes(status)) return result.data;
+
+    // Re-chama generate no inicio e a cada 3 tentativas enquanto estiver liberado.
+    if (status === "released" || status === "pending" || !status) {
+      if (i === 0 || i % 3 === 0) {
+        try {
+          await generateOrders([orderId]);
+          generateConfirmed = true;
+          lastGenerateError = "";
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (/j[aá]\s+(foi\s+)?gerad|already\s+generat|gerado com sucesso/i.test(msg)) {
+            generateConfirmed = true;
+          } else {
+            lastGenerateError = msg;
+          }
+        }
+      }
+    }
+
+    // API confirmou generate: depois de algumas leituras, segue (status às vezes atrasa).
+    if (generateConfirmed && i >= 4) {
+      return result.data;
+    }
+
+    await sleep(intervalMs);
+  }
+
+  if (generateConfirmed) return { id: orderId, status: lastStatus };
+
+  throw new Error(
+    lastGenerateError ||
+      `Pedido ME nao ficou gerado (status atual: ${lastStatus || "desconhecido"}).`,
   );
 }
 

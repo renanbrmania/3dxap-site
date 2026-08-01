@@ -4,8 +4,8 @@ import {
   calculateShipping,
   checkoutOrders,
   emptyRecipient,
+  ensureOrderGenerated,
   fetchZplTextWithRetry,
-  generateOrders,
   getAuthorizeUrl,
   getMeConfig,
   loadMeTokens,
@@ -238,21 +238,16 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
       await checkoutOrders([cartId]);
 
       onStatus?.("Pagamento ok. Aguardando liberacao…");
-      await waitForOrderStatus(cartId, ["released", "generated"], {
-        attempts: 15,
-        intervalMs: 1200,
-      });
-
-      onStatus?.("Gerando etiqueta…");
-      await generateOrders([cartId]);
-
-      onStatus?.("Etiqueta gerada. Baixando ZPL…");
-      await waitForOrderStatus(cartId, ["generated"], {
+      await waitForOrderStatus(cartId, ["released", "generated", "posted"], {
         attempts: 20,
         intervalMs: 1500,
       });
 
-      const zpl = await fetchZplTextWithRetry(cartId);
+      onStatus?.("Gerando etiqueta no Melhor Envio…");
+      await ensureOrderGenerated(cartId);
+
+      onStatus?.("Etiqueta gerada. Baixando ZPL…");
+      const zpl = await fetchZplTextWithRetry(cartId, 12);
       const q = shipping.selectedQuote;
 
       await upsertLabelArchive({
