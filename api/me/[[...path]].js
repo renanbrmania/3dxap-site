@@ -13,7 +13,7 @@ import {
  * Routes:
  *  GET  /api/me/config
  *  GET  /api/me/authorize-url
- *  POST /api/me/oauth/token
+ *  POST /api/me/token
  *  POST /api/me/calculate
  *  POST /api/me/cart
  *  POST /api/me/checkout
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    if (req.method === "POST" && path === "/oauth/token") {
+    if (req.method === "POST" && (path === "/token" || path === "/oauth/token" || path === "/oauth-token")) {
       const body = await readJsonBody(req);
       if (body.refresh_token) {
         const tokens = await exchangeToken({

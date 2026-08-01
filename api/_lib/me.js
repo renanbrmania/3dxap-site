@@ -113,7 +113,13 @@ export async function exchangeToken({ code, refreshToken, grantType }) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || `OAuth ${res.status}`);
+    const msg =
+      (typeof data?.message === "string" && data.message) ||
+      (typeof data?.error === "string" && data.error) ||
+      (data?.error_description && String(data.error_description)) ||
+      (data && typeof data === "object" ? JSON.stringify(data) : "") ||
+      `OAuth ${res.status}`;
+    throw new Error(msg);
   }
   return data;
 }

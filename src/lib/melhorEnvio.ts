@@ -156,7 +156,16 @@ async function api(path: string, init: RequestInit = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.ok === false) {
-    throw new Error(data.error || data.message || `Erro API ${res.status}`);
+    const errVal = data.error ?? data.message;
+    const msg =
+      typeof errVal === "string"
+        ? errVal
+        : errVal
+          ? JSON.stringify(errVal)
+          : data.details
+            ? JSON.stringify(data.details)
+            : `Erro API ${res.status}`;
+    throw new Error(msg);
   }
   return data;
 }
@@ -170,7 +179,7 @@ export async function getAuthorizeUrl(state = "3dxap") {
 }
 
 export async function exchangeCode(code: string) {
-  const data = await api("/oauth/token", {
+  const data = await api("/token", {
     method: "POST",
     body: JSON.stringify({ code }),
   });
@@ -180,7 +189,7 @@ export async function exchangeCode(code: string) {
 export async function refreshMeToken() {
   const current = loadMeTokens();
   if (!current?.refresh_token) throw new Error("Sem refresh_token. Conecte o Melhor Envio.");
-  const data = await api("/oauth/token", {
+  const data = await api("/token", {
     method: "POST",
     body: JSON.stringify({ refresh_token: current.refresh_token }),
   });
