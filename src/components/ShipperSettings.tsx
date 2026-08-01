@@ -28,6 +28,7 @@ export function ShipperSettings({ onStatus }: Props) {
   const [agentOnline, setAgentOnline] = useState<boolean | null>(null);
   const [agentIp, setAgentIp] = useState("");
   const [busy, setBusy] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
 
   useEffect(() => {
     getMeConfig()
@@ -43,10 +44,16 @@ export function ShipperSettings({ onStatus }: Props) {
 
   function setField<K extends keyof ShipperProfile>(key: K, value: ShipperProfile[K]) {
     setProfile((prev) => ({ ...prev, [key]: value }));
+    setSavedMsg("");
   }
 
   function handleSave(e: FormEvent) {
     e.preventDefault();
+    if (onlyDigits(profile.postal_code).length !== 8) {
+      setSavedMsg("Informe o CEP de origem com 8 dígitos.");
+      onStatus?.("Informe o CEP de origem com 8 dígitos.");
+      return;
+    }
     const next = {
       ...profile,
       phone: onlyDigits(profile.phone),
@@ -56,6 +63,7 @@ export function ShipperSettings({ onStatus }: Props) {
     };
     saveShipperProfile(next);
     setProfile(next);
+    setSavedMsg("Remetente salvo neste navegador.");
     onStatus?.("Remetente 3DXAP salvo neste aparelho.");
   }
 
@@ -206,13 +214,22 @@ export function ShipperSettings({ onStatus }: Props) {
           ))}
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             type="submit"
             className="rounded-full bg-rosa px-5 py-2.5 text-sm font-semibold text-white"
           >
             Salvar remetente
           </button>
+          {savedMsg ? (
+            <p
+              className={`text-sm font-semibold ${
+                savedMsg.includes("CEP") ? "text-rosa-deep" : "text-olive"
+              }`}
+            >
+              {savedMsg}
+            </p>
+          ) : null}
         </div>
       </form>
     </div>
