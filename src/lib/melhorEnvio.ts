@@ -306,3 +306,30 @@ export async function fetchZplText(orderId: string): Promise<string> {
   }
   throw new Error("Não foi possível obter o ZPL da etiqueta.");
 }
+
+/** Solicita PDF de impressão no Melhor Envio (um ou vários pedidos). */
+export async function fetchPrintPdf(orderIds: string[]) {
+  return withToken((token) =>
+    api("/print-pdf", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orders: orderIds, mode: "private" }),
+    }),
+  );
+}
+
+export function extractPrintUrl(payload: unknown): string | null {
+  if (typeof payload === "string" && payload.startsWith("http")) return payload;
+  if (payload && typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    if (typeof obj.url === "string") return obj.url;
+    for (const v of Object.values(obj)) {
+      if (typeof v === "string" && v.startsWith("http")) return v;
+      if (v && typeof v === "object") {
+        const nested = extractPrintUrl(v);
+        if (nested) return nested;
+      }
+    }
+  }
+  return null;
+}

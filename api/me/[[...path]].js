@@ -19,6 +19,7 @@ import {
  *  POST /api/me/checkout
  *  POST /api/me/generate
  *  GET  /api/me/print-zpl?id=
+ *  POST /api/me/print-pdf
  */
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
@@ -150,6 +151,25 @@ export default async function handler(req, res) {
       // Arquivo ZPL dedicado
       const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
       sendJson(res, 200, { ok: true, data: file, printLink: data });
+      return;
+    }
+
+    if (req.method === "POST" && path === "/print-pdf") {
+      const body = await readJsonBody(req);
+      const orders = Array.isArray(body.orders) ? body.orders.filter(Boolean) : [];
+      if (!orders.length) {
+        sendJson(res, 400, { ok: false, error: "Informe orders: [id, ...]." });
+        return;
+      }
+      const data = await meFetch("/api/v2/me/shipment/print", {
+        token,
+        method: "POST",
+        body: {
+          mode: body.mode || "private",
+          orders,
+        },
+      });
+      sendJson(res, 200, { ok: true, data });
       return;
     }
 

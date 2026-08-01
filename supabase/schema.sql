@@ -34,10 +34,27 @@ create table if not exists quote_library (
   updated_at timestamptz not null default now()
 );
 
+-- Arquivo / fila de etiquetas para impressão em lote
+create table if not exists label_archive (
+  id text primary key,
+  quote_numero text not null default '',
+  cliente text not null default '',
+  carrier text not null default '',
+  service text not null default '',
+  dest_name text not null default '',
+  dest_cep text not null default '',
+  zpl text not null default '',
+  status text not null default 'pronta',
+  printed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- Políticas abertas para o painel simples (pode restringir depois com auth)
 alter table products enable row level security;
 alter table testimonials enable row level security;
 alter table quote_library enable row level security;
+alter table label_archive enable row level security;
 
 create policy "public read products" on products for select using (true);
 create policy "public write products" on products for all using (true) with check (true);
@@ -47,3 +64,6 @@ create policy "public write testimonials" on testimonials for all using (true) w
 
 create policy "public read quote_library" on quote_library for select using (true);
 create policy "public write quote_library" on quote_library for all using (true) with check (true);
+
+create policy "public read label_archive" on label_archive for select using (true);
+create policy "public write label_archive" on label_archive for all using (true) with check (true);

@@ -20,6 +20,7 @@ import {
 } from "../lib/melhorEnvio";
 import { parseNfeFile } from "../lib/nfeXml";
 import { loadShipperProfile } from "../lib/shipperProfile";
+import { upsertLabelArchive } from "../lib/labelArchive";
 import { formatBRL, quoteTotal, type QuoteData } from "../lib/quotePdf";
 
 type Props = {
@@ -146,7 +147,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
     }
   }
 
-  async function handleBuyAndPrint() {
+  async function handleBuyLabel(printNow: boolean) {
     setBusy(true);
     onStatus?.("");
     try {
@@ -237,6 +238,20 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
       await generateOrders([cartId]);
 
       const zpl = await fetchZplText(cartId);
+      const q = shipping.selectedQuote;
+
+      await upsertLabelArchive({
+        id: String(cartId),
+        quoteNumero: quote.numero,
+        cliente: quote.cliente,
+        carrier: q.company?.name || "",
+        service: q.name || "",
+        destName: recipient.name,
+        destCep: onlyDigits(recipient.postal_code),
+        zpl,
+        status: "pronta",
+      });
+
       patch({
         meCartId: cartId,
         meOrderId: cartId,
@@ -245,26 +260,38 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
         lastError: "",
       });
 
+      if (!printNow) {
+        onStatus?.(
+          "Etiqueta gerada e guardada na fila Impressão. Imprima em lote quando quiser.",
+        );
+        return;
+      }
+
       try {
         await printerAgentHealth();
         const printed = await printerAgentPrintZpl(zpl);
+        await upsertLabelArchive({
+          id: String(cartId),
+          zpl,
+          status: "impressa",
+          printedAt: new Date().toISOString(),
+        });
         patch({
           meCartId: cartId,
           meOrderId: cartId,
           status: "impresso",
         });
         onStatus?.(
-          `Etiqueta gerada e enviada à Elgin (${printed.printedOn?.ip || "rede local"}).`,
+          `Etiqueta gerada, arquivada e enviada à Elgin (${printed.printedOn?.ip || "rede local"}).`,
         );
       } catch (printErr) {
-        // fallback: download zpl
         const blob = new Blob([zpl], { type: "text/plain" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = `etiqueta-${quote.numero || cartId}.zpl`;
         a.click();
         onStatus?.(
-          `Etiqueta gerada. Agent offline — ZPL baixado. ${printErr instanceof Error ? printErr.message : ""}`,
+          `Etiqueta arquivada na fila. Agent offline — ZPL baixado. ${printErr instanceof Error ? printErr.message : ""}`,
         );
       }
     } catch (err) {
@@ -526,10 +553,18 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
           <button
             type="button"
             disabled={busy || !meConnected || !shipping.selectedQuote || !shipping.invoiceKey}
-            onClick={handleBuyAndPrint}
+            onClick={() => void handleBuyLabel(true)}
             className="admin-btn admin-btn-primary"
           >
             {busy ? "Processando…" : "Comprar, gerar e imprimir na Elgin"}
+          </button>
+          <button
+            type="button"
+            disabled={busy || !meConnected || !shipping.selectedQuote || !shipping.invoiceKey}
+            onClick={() => void handleBuyLabel(false)}
+            className="admin-btn admin-btn-olive"
+          >
+            Só gerar e guardar (imprimir depois)
           </button>
           <button
             type="button"

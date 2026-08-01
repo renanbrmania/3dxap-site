@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { QuoteBuilder } from "../components/QuoteBuilder";
 import { ShipperSettings } from "../components/ShipperSettings";
+import { LabelPrintQueue } from "../components/LabelPrintQueue";
 import { useContent } from "../lib/ContentContext";
 import type { Product, Testimonial } from "../lib/content";
 
@@ -46,9 +47,17 @@ export function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [authed, setAuthed] = useState(() => sessionStorage.getItem(AUTH_KEY) === "1");
   const [password, setPassword] = useState("");
-  const [tab, setTab] = useState<"products" | "testimonials" | "quotes" | "shipping">(() => {
+  const [tab, setTab] = useState<"products" | "testimonials" | "quotes" | "shipping" | "print">(() => {
     const t = searchParams.get("tab");
-    if (t === "testimonials" || t === "quotes" || t === "shipping" || t === "products") return t;
+    if (
+      t === "testimonials" ||
+      t === "quotes" ||
+      t === "shipping" ||
+      t === "print" ||
+      t === "products"
+    ) {
+      return t;
+    }
     return "products";
   });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -58,7 +67,13 @@ export function AdminPage() {
 
   useEffect(() => {
     const t = searchParams.get("tab");
-    if (t === "testimonials" || t === "quotes" || t === "shipping" || t === "products") {
+    if (
+      t === "testimonials" ||
+      t === "quotes" ||
+      t === "shipping" ||
+      t === "print" ||
+      t === "products"
+    ) {
       setTab(t);
     }
   }, [searchParams]);
@@ -249,12 +264,21 @@ export function AdminPage() {
           >
             Envios
           </button>
+          <button
+            type="button"
+            onClick={() => goTab("print")}
+            className={`admin-tab ${tab === "print" ? "admin-tab-active" : ""}`}
+          >
+            Impressão
+          </button>
         </div>
 
         {tab === "quotes" ? (
           <QuoteBuilder onStatus={setStatus} />
         ) : tab === "shipping" ? (
           <ShipperSettings onStatus={setStatus} />
+        ) : tab === "print" ? (
+          <LabelPrintQueue onStatus={setStatus} />
         ) : tab === "products" ? (
           <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <div className="space-y-3">
