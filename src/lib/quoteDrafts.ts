@@ -6,6 +6,7 @@ import {
   quoteTotal,
   type QuoteData,
 } from "./quotePdf";
+import { emptyShippingState, type ShippingState } from "./melhorEnvio";
 
 const STORAGE_KEY = "3dxap-quote-drafts-v1";
 
@@ -17,7 +18,17 @@ export type QuoteDraft = {
   createdAt: string;
   updatedAt: string;
   data: QuoteData;
+  shipping?: ShippingState;
 };
+
+function normalizeDraft(draft: QuoteDraft): QuoteDraft {
+  return {
+    ...draft,
+    shipping: draft.shipping
+      ? { ...emptyShippingState(), ...draft.shipping }
+      : emptyShippingState(),
+  };
+}
 
 function readAll(): QuoteDraft[] {
   try {
@@ -27,6 +38,7 @@ function readAll(): QuoteDraft[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((d) => d && typeof d.id === "string" && d.data)
+      .map(normalizeDraft)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } catch {
     return [];
@@ -53,6 +65,7 @@ export function createQuoteDraft(data: QuoteData = createDefaultQuote()): QuoteD
     createdAt: now,
     updatedAt: now,
     data,
+    shipping: emptyShippingState(),
   };
   writeAll([draft, ...readAll()]);
   return draft;
@@ -62,6 +75,7 @@ export function saveQuoteDraft(
   id: string,
   data: QuoteData,
   status?: QuoteDraftStatus,
+  shipping?: ShippingState,
 ): QuoteDraft {
   const now = new Date().toISOString();
   const existing = readAll();
@@ -74,6 +88,7 @@ export function saveQuoteDraft(
       createdAt: now,
       updatedAt: now,
       data,
+      shipping: shipping ?? emptyShippingState(),
     };
     writeAll([draft, ...existing]);
     return draft;
@@ -84,6 +99,7 @@ export function saveQuoteDraft(
     data,
     updatedAt: now,
     status: status ?? existing[index].status,
+    shipping: shipping ?? existing[index].shipping ?? emptyShippingState(),
   };
   const copy = [...existing];
   copy[index] = next;

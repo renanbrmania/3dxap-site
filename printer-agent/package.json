@@ -1,0 +1,12 @@
+{
+  "name": "3dxap-printer-agent",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Agent local para descobrir a Elgin L42 PRO FULL (DHCP) e enviar ZPL",
+  "scripts": {
+    "discover": "node discover.mjs",
+    "start": "node server.mjs",
+    "print-test": "node print-test.mjs"
+  }
+}

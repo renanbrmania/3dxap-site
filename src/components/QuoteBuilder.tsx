@@ -22,6 +22,8 @@ import {
   type QuoteData,
   type QuoteItem,
 } from "../lib/quotePdf";
+import { emptyShippingState, type ShippingState } from "../lib/melhorEnvio";
+import { ShippingPanel } from "./ShippingPanel";
 
 type Props = {
   onStatus?: (message: string) => void;
@@ -75,6 +77,7 @@ export function QuoteBuilder({ onStatus }: Props) {
   const [drafts, setDrafts] = useState<QuoteDraft[]>(() => listQuoteDrafts());
   const [draftId, setDraftId] = useState<string | null>(null);
   const [quote, setQuote] = useState<QuoteData>(() => createDefaultQuote());
+  const [shipping, setShipping] = useState<ShippingState>(() => emptyShippingState());
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
@@ -98,6 +101,7 @@ export function QuoteBuilder({ onStatus }: Props) {
     skipAutoSave.current = true;
     setDraftId(null);
     setQuote(createDefaultQuote());
+    setShipping(emptyShippingState());
     setDirty(false);
     setLastSavedAt(null);
     onStatus?.("Novo orçamento iniciado.");
@@ -107,6 +111,7 @@ export function QuoteBuilder({ onStatus }: Props) {
     skipAutoSave.current = true;
     setDraftId(draft.id);
     setQuote(structuredClone(draft.data));
+    setShipping(structuredClone(draft.shipping || emptyShippingState()));
     setDirty(false);
     setLastSavedAt(draft.updatedAt);
     onStatus?.(`Rascunho aberto: ${draftLabel(draft)}.`);
@@ -114,7 +119,7 @@ export function QuoteBuilder({ onStatus }: Props) {
 
   function persist(status?: QuoteDraft["status"]): QuoteDraft {
     if (draftId) {
-      const saved = saveQuoteDraft(draftId, quote, status);
+      const saved = saveQuoteDraft(draftId, quote, status, shipping);
       setLastSavedAt(saved.updatedAt);
       setDirty(false);
       refreshDrafts();
@@ -122,15 +127,25 @@ export function QuoteBuilder({ onStatus }: Props) {
     }
 
     const created = createQuoteDraft(quote);
-    const saved =
-      status && status !== "draft"
-        ? saveQuoteDraft(created.id, quote, status)
-        : created;
+    const saved = saveQuoteDraft(created.id, quote, status ?? "draft", shipping);
     setDraftId(saved.id);
     setLastSavedAt(saved.updatedAt);
     setDirty(false);
     refreshDrafts();
     return saved;
+  }
+
+  function updateShipping(next: ShippingState) {
+    setShipping(next);
+    if (draftId) {
+      saveQuoteDraft(draftId, quote, undefined, next);
+      refreshDrafts();
+    } else {
+      const created = createQuoteDraft(quote);
+      const saved = saveQuoteDraft(created.id, quote, "draft", next);
+      setDraftId(saved.id);
+      refreshDrafts();
+    }
   }
 
   function handleSaveDraft() {
@@ -169,6 +184,7 @@ export function QuoteBuilder({ onStatus }: Props) {
     skipAutoSave.current = true;
     setDraftId(created.id);
     setQuote(structuredClone(created.data));
+    setShipping(emptyShippingState());
     setDirty(false);
     setLastSavedAt(created.updatedAt);
     refreshDrafts();
@@ -569,6 +585,13 @@ export function QuoteBuilder({ onStatus }: Props) {
           <p className="text-base font-semibold text-rosa-deep">Total {formatBRL(total)}</p>
         </div>
       </div>
+
+      <ShippingPanel
+        quote={quote}
+        shipping={shipping}
+        onChange={updateShipping}
+        onStatus={onStatus}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { type FormEvent, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { QuoteBuilder } from "../components/QuoteBuilder";
+import { ShipperSettings } from "../components/ShipperSettings";
 import { useContent } from "../lib/ContentContext";
 import type { Product, Testimonial } from "../lib/content";
 
@@ -42,13 +43,30 @@ export function AdminPage() {
     uploadImage,
   } = useContent();
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [authed, setAuthed] = useState(() => sessionStorage.getItem(AUTH_KEY) === "1");
   const [password, setPassword] = useState("");
-  const [tab, setTab] = useState<"products" | "testimonials" | "quotes">("products");
+  const [tab, setTab] = useState<"products" | "testimonials" | "quotes" | "shipping">(() => {
+    const t = searchParams.get("tab");
+    if (t === "testimonials" || t === "quotes" || t === "shipping" || t === "products") return t;
+    return "products";
+  });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "testimonials" || t === "quotes" || t === "shipping" || t === "products") {
+      setTab(t);
+    }
+  }, [searchParams]);
+
+  function goTab(next: typeof tab) {
+    setTab(next);
+    setSearchParams(next === "products" ? {} : { tab: next });
+  }
 
   const sortedProducts = useMemo(
     () => [...content.products].sort((a, b) => a.nome.localeCompare(b.nome)),
@@ -209,29 +227,38 @@ export function AdminPage() {
         <div className="mb-6 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setTab("products")}
+            onClick={() => goTab("products")}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "products" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
           >
             Produtos ({content.products.length})
           </button>
           <button
             type="button"
-            onClick={() => setTab("testimonials")}
+            onClick={() => goTab("testimonials")}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "testimonials" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
           >
             Depoimentos ({content.testimonials.length})
           </button>
           <button
             type="button"
-            onClick={() => setTab("quotes")}
+            onClick={() => goTab("quotes")}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "quotes" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
           >
             Orçamentos
+          </button>
+          <button
+            type="button"
+            onClick={() => goTab("shipping")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "shipping" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
+          >
+            Envios
           </button>
         </div>
 
         {tab === "quotes" ? (
           <QuoteBuilder onStatus={setStatus} />
+        ) : tab === "shipping" ? (
+          <ShipperSettings onStatus={setStatus} />
         ) : tab === "products" ? (
           <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <div className="space-y-3">
