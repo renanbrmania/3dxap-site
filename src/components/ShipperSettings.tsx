@@ -135,7 +135,7 @@ export function ShipperSettings({ onStatus }: Props) {
                 setMeConnected(false);
                 onStatus?.("Melhor Envio desconectado.");
               }}
-              className="rounded-full bg-cream px-4 py-2 text-sm font-semibold ring-1 ring-rosa/15"
+              className="admin-btn admin-btn-secondary"
             >
               Desconectar Melhor Envio
             </button>
@@ -143,7 +143,7 @@ export function ShipperSettings({ onStatus }: Props) {
             <button
               type="button"
               onClick={connectMe}
-              className="rounded-full bg-rosa px-4 py-2 text-sm font-semibold text-white"
+              className="admin-btn admin-btn-primary"
             >
               Conectar Melhor Envio
             </button>
@@ -152,7 +152,7 @@ export function ShipperSettings({ onStatus }: Props) {
             type="button"
             disabled={busy}
             onClick={testPrinter}
-            className="rounded-full bg-cream px-4 py-2 text-sm font-semibold ring-1 ring-rosa/15 disabled:opacity-50"
+            className="admin-btn admin-btn-secondary"
           >
             {busy ? "Testando…" : "Testar Elgin (agent local)"}
           </button>
@@ -179,7 +179,7 @@ export function ShipperSettings({ onStatus }: Props) {
           <button
             type="button"
             onClick={() => setProfile(defaultShipperProfile())}
-            className="rounded-full bg-cream px-3 py-1.5 text-sm font-semibold ring-1 ring-rosa/15"
+            className="admin-btn admin-btn-secondary admin-btn-sm"
           >
             Restaurar padrão
           </button>
@@ -217,7 +217,7 @@ export function ShipperSettings({ onStatus }: Props) {
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            className="rounded-full bg-rosa px-5 py-2.5 text-sm font-semibold text-white"
+            className="admin-btn admin-btn-primary"
           >
             Salvar remetente
           </button>

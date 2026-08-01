@@ -298,7 +298,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
                   setMeConnected(false);
                   onStatus?.("Melhor Envio desconectado.");
                 }}
-                className="rounded-full bg-cream px-4 py-2 text-sm font-semibold ring-1 ring-rosa/15"
+                className="admin-btn admin-btn-secondary"
               >
                 Desconectar ME
               </button>
@@ -306,7 +306,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
               <button
                 type="button"
                 onClick={connectMe}
-                className="rounded-full bg-rosa px-4 py-2 text-sm font-semibold text-white"
+                className="admin-btn admin-btn-primary"
               >
                 Conectar Melhor Envio
               </button>
@@ -405,7 +405,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
             type="button"
             disabled={busy || !meConnected}
             onClick={handleCalculate}
-            className="rounded-full bg-rosa px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="admin-btn admin-btn-primary"
           >
             {busy ? "Cotando…" : "Cotar frete"}
           </button>
@@ -427,8 +427,10 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
                       status: shipping.invoiceKey ? shipping.status : "aguardando_nf",
                     })
                   }
-                  className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left ring-1 ${
-                    active ? "bg-blush/70 ring-rosa/30" : "bg-cream/70 ring-rosa/10"
+                  className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                    active
+                      ? "border-rosa/40 bg-blush/80 shadow-[0_8px_18px_rgba(196,91,134,0.16)]"
+                      : "border-rosa/15 bg-cream/70 hover:border-rosa/35 hover:bg-white"
                   }`}
                 >
                   <div>
@@ -470,7 +472,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
               type="file"
               accept=".xml,text/xml,application/xml"
               onChange={(e) => handleXml(e.target.files)}
-              className="mt-1 block w-full cursor-pointer text-sm text-olive file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-olive file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:file:opacity-90"
+              className="mt-1 block w-full cursor-pointer text-sm text-olive file:mr-3 file:cursor-pointer file:rounded-full file:border file:border-olive/40 file:bg-olive file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white file:shadow-[0_6px_14px_rgba(111,129,100,0.28)] hover:file:-translate-y-0.5 hover:file:brightness-105 file:transition"
             />
           </label>
         </div>
@@ -525,7 +527,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
             type="button"
             disabled={busy || !meConnected || !shipping.selectedQuote || !shipping.invoiceKey}
             onClick={handleBuyAndPrint}
-            className="rounded-full bg-rosa px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="admin-btn admin-btn-primary"
           >
             {busy ? "Processando…" : "Comprar, gerar e imprimir na Elgin"}
           </button>
@@ -542,7 +544,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
                 onStatus?.(err instanceof Error ? err.message : String(err));
               }
             }}
-            className="rounded-full bg-cream px-4 py-2.5 text-sm font-semibold ring-1 ring-rosa/15"
+            className="admin-btn admin-btn-secondary"
           >
             Testar impressora
           </button>

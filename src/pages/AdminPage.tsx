@@ -172,7 +172,7 @@ export function AdminPage() {
           </label>
           <button
             type="submit"
-            className="w-full rounded-full bg-rosa px-4 py-3 text-sm font-semibold text-white"
+            className="admin-btn admin-btn-primary w-full py-3"
           >
             Entrar
           </button>
@@ -198,14 +198,10 @@ export function AdminPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link to="/" className="rounded-full bg-cream px-4 py-2 text-sm font-medium ring-1 ring-rosa/15">
+            <Link to="/" className="admin-btn admin-btn-secondary">
               Ver site
             </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white"
-            >
+            <button type="button" onClick={logout} className="admin-btn admin-btn-dark">
               Sair
             </button>
           </div>
@@ -228,28 +224,28 @@ export function AdminPage() {
           <button
             type="button"
             onClick={() => goTab("products")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "products" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
+            className={`admin-tab ${tab === "products" ? "admin-tab-active" : ""}`}
           >
             Produtos ({content.products.length})
           </button>
           <button
             type="button"
             onClick={() => goTab("testimonials")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "testimonials" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
+            className={`admin-tab ${tab === "testimonials" ? "admin-tab-active" : ""}`}
           >
             Depoimentos ({content.testimonials.length})
           </button>
           <button
             type="button"
             onClick={() => goTab("quotes")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "quotes" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
+            className={`admin-tab ${tab === "quotes" ? "admin-tab-active" : ""}`}
           >
             Orçamentos
           </button>
           <button
             type="button"
             onClick={() => goTab("shipping")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "shipping" ? "bg-rosa text-white" : "bg-white ring-1 ring-rosa/10"}`}
+            className={`admin-tab ${tab === "shipping" ? "admin-tab-active" : ""}`}
           >
             Envios
           </button>
@@ -265,14 +261,14 @@ export function AdminPage() {
               <button
                 type="button"
                 onClick={() => setEditingProduct(emptyProduct())}
-                className="w-full rounded-2xl bg-rosa px-4 py-3 text-sm font-semibold text-white"
+                className="admin-btn admin-btn-primary w-full rounded-2xl py-3.5"
               >
                 + Novo produto
               </button>
               {sortedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="flex items-center gap-3 rounded-2xl bg-white p-3 ring-1 ring-rosa/10"
+                  className="admin-card flex items-center gap-3 rounded-2xl border border-rosa/10 bg-white p-3"
                 >
                   {product.imagens[0] ? (
                     <img src={product.imagens[0]} alt="" className="h-14 w-14 rounded-xl object-cover" />
@@ -289,14 +285,14 @@ export function AdminPage() {
                   </div>
                   <button
                     type="button"
-                    className="rounded-full bg-cream px-3 py-1.5 text-xs font-semibold"
+                    className="admin-btn admin-btn-secondary admin-btn-sm"
                     onClick={() => setEditingProduct(product)}
                   >
                     Editar
                   </button>
                   <button
                     type="button"
-                    className="rounded-full bg-ink/90 px-3 py-1.5 text-xs font-semibold text-white"
+                    className="admin-btn admin-btn-danger admin-btn-sm"
                     onClick={() => void removeProduct(product.id)}
                   >
                     Excluir
@@ -386,14 +382,14 @@ export function AdminPage() {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="rounded-full bg-rosa px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                    className="admin-btn admin-btn-primary"
                   >
                     {busy ? "Salvando…" : "Salvar"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingProduct(null)}
-                    className="rounded-full bg-cream px-5 py-2.5 text-sm font-semibold ring-1 ring-rosa/15"
+                    className="admin-btn admin-btn-secondary"
                   >
                     Cancelar
                   </button>
@@ -411,14 +407,14 @@ export function AdminPage() {
               <button
                 type="button"
                 onClick={() => setEditingTestimonial(emptyTestimonial())}
-                className="w-full rounded-2xl bg-rosa px-4 py-3 text-sm font-semibold text-white"
+                className="admin-btn admin-btn-primary w-full rounded-2xl py-3.5"
               >
                 + Novo depoimento / print
               </button>
               {content.testimonials.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 rounded-2xl bg-white p-3 ring-1 ring-rosa/10"
+                  className="admin-card flex items-center gap-3 rounded-2xl border border-rosa/10 bg-white p-3"
                 >
                   {item.imagem ? (
                     <img src={item.imagem} alt="" className="h-14 w-14 rounded-xl object-cover" />
@@ -433,14 +429,14 @@ export function AdminPage() {
                   </div>
                   <button
                     type="button"
-                    className="rounded-full bg-cream px-3 py-1.5 text-xs font-semibold"
+                    className="admin-btn admin-btn-secondary admin-btn-sm"
                     onClick={() => setEditingTestimonial(item)}
                   >
                     Editar
                   </button>
                   <button
                     type="button"
-                    className="rounded-full bg-ink/90 px-3 py-1.5 text-xs font-semibold text-white"
+                    className="admin-btn admin-btn-danger admin-btn-sm"
                     onClick={() => void removeTestimonial(item.id)}
                   >
                     Excluir
@@ -506,14 +502,14 @@ export function AdminPage() {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="rounded-full bg-rosa px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                    className="admin-btn admin-btn-primary"
                   >
                     {busy ? "Salvando…" : "Salvar"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingTestimonial(null)}
-                    className="rounded-full bg-cream px-5 py-2.5 text-sm font-semibold ring-1 ring-rosa/15"
+                    className="admin-btn admin-btn-secondary"
                   >
                     Cancelar
                   </button>

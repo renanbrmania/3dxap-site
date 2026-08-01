@@ -246,7 +246,7 @@ export function QuoteBuilder({ onStatus }: Props) {
           <button
             type="button"
             onClick={startNew}
-            className="rounded-full bg-rosa px-4 py-2 text-sm font-semibold text-white"
+            className="admin-btn admin-btn-primary"
           >
             + Novo orçamento
           </button>
@@ -340,7 +340,7 @@ export function QuoteBuilder({ onStatus }: Props) {
               type="button"
               onClick={handleSaveDraft}
               disabled={busy}
-              className="rounded-full bg-cream px-4 py-2 text-sm font-semibold ring-1 ring-rosa/15 disabled:opacity-50"
+              className="admin-btn admin-btn-secondary"
             >
               Salvar rascunho
             </button>
@@ -348,7 +348,7 @@ export function QuoteBuilder({ onStatus }: Props) {
               type="button"
               onClick={handleDownload}
               disabled={busy}
-              className="rounded-full bg-rosa px-5 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(196,91,134,0.25)] disabled:opacity-50"
+              className="admin-btn admin-btn-primary"
             >
               {busy ? "Gerando PDF…" : "Finalizar e baixar PDF"}
             </button>
@@ -432,7 +432,7 @@ export function QuoteBuilder({ onStatus }: Props) {
           <button
             type="button"
             onClick={() => setField("itens", [...quote.itens, emptyQuoteItem()])}
-            className="rounded-full bg-rosa px-4 py-2 text-sm font-semibold text-white"
+            className="admin-btn admin-btn-primary"
           >
             + Adicionar item
           </button>
@@ -613,8 +613,8 @@ function DraftRow({
 }) {
   return (
     <div
-      className={`flex flex-wrap items-center gap-3 rounded-2xl p-3 ring-1 ${
-        active ? "bg-blush/60 ring-rosa/30" : "bg-cream/70 ring-rosa/10"
+      className={`admin-card flex flex-wrap items-center gap-3 rounded-2xl border p-3 ${
+        active ? "border-rosa/35 bg-blush/60" : "border-rosa/12 bg-cream/70"
       }`}
     >
       <div className="min-w-0 flex-1">
@@ -637,7 +637,7 @@ function DraftRow({
         <button
           type="button"
           onClick={onReuse}
-          className="rounded-full bg-rosa px-3 py-1.5 text-sm font-semibold text-white"
+          className="admin-btn admin-btn-primary admin-btn-sm"
         >
           Reutilizar
         </button>
@@ -645,14 +645,14 @@ function DraftRow({
       <button
         type="button"
         onClick={onOpen}
-        className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold ring-1 ring-rosa/15"
+        className="admin-btn admin-btn-secondary admin-btn-sm"
       >
         {mode === "library" ? "Abrir" : "Continuar"}
       </button>
       <button
         type="button"
         onClick={onDelete}
-        className="rounded-full px-3 py-1.5 text-sm font-medium text-rosa-deep"
+        className="admin-btn admin-btn-danger admin-btn-sm"
       >
         Excluir
       </button>
