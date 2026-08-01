@@ -600,6 +600,10 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
             Só gerar e guardar (imprimir depois)
           </button>
         </div>
+        <p className="mt-2 text-xs text-muted">
+          Na Elgin sai só a etiqueta de frete (Jadlog), sem declaração/recibo — equivalente a desmarcar
+          esses itens no PDF do Melhor Envio.
+        </p>
 
         {shipping.lastError ? (
           <p className="mt-3 text-sm font-medium text-rosa-deep">{shipping.lastError}</p>

@@ -16,6 +16,7 @@ import {
   printerAgentPrintTest,
   printerAgentPrintZpl,
 } from "../lib/melhorEnvio";
+import { extractShippingLabelZpl } from "../lib/zplLabel";
 import { buildZip, downloadBlob } from "../lib/zipDownload";
 
 type Props = {
@@ -140,7 +141,8 @@ export function LabelPrintQueue({ onStatus }: Props) {
       const printedIds: string[] = [];
       for (const item of selectedItems) {
         if (!item.zpl.trim()) throw new Error(`Etiqueta ${item.quoteNumero || item.id} sem ZPL.`);
-        await printerAgentPrintZpl(item.zpl);
+        // Só etiqueta de frete (sem declaração/recibo extras do ME)
+        await printerAgentPrintZpl(extractShippingLabelZpl(item.zpl));
         printedIds.push(item.id);
         await sleep(400);
       }
@@ -164,7 +166,7 @@ export function LabelPrintQueue({ onStatus }: Props) {
     }
     const files = selectedItems.map((item, idx) => ({
       name: `${String(idx + 1).padStart(2, "0")}-${item.quoteNumero || item.id}-${item.destCep || "cep"}.zpl`,
-      content: item.zpl,
+      content: extractShippingLabelZpl(item.zpl),
     }));
     const zip = buildZip(files);
     const day = new Date().toISOString().slice(0, 10);
@@ -316,6 +318,10 @@ export function LabelPrintQueue({ onStatus }: Props) {
             Baixar PDF (Melhor Envio)
           </button>
         </div>
+        <p className="text-xs text-muted">
+          Impressão térmica: apenas a etiqueta de frete. O PDF do ME pode incluir declaração — use o
+          site do ME se precisar dos extras.
+        </p>
 
         {loading ? (
           <p className="rounded-2xl bg-cream/80 px-4 py-3 text-sm text-muted">Carregando arquivo…</p>

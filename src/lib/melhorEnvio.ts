@@ -498,27 +498,31 @@ export async function printerAgentPrintTest() {
   return printerAgentPrintZpl(buildTestLabelZpl());
 }
 
+import { extractShippingLabelZpl } from "./zplLabel";
+
 export async function fetchZplText(orderId: string): Promise<string> {
   const result = await fetchZpl(orderId);
   const payload = result.data;
   // API ja resolve URL S3 no servidor e devolve ZPL cru (evita CORS / Load failed)
+  let raw = "";
   if (typeof payload === "string") {
-    if (payload.trim().startsWith("^XA") || payload.includes("^XA")) return payload;
-    if (/^https?:\/\//i.test(payload)) {
+    if (payload.trim().startsWith("^XA") || payload.includes("^XA")) raw = payload;
+    else if (/^https?:\/\//i.test(payload)) {
       throw new Error(
         "API devolveu URL ZPL em vez do arquivo. Atualize a pagina e tente de novo (deploy pode estar atrasado).",
       );
-    }
-    return payload;
-  }
-  if (payload && typeof payload === "object") {
+    } else raw = payload;
+  } else if (payload && typeof payload === "object") {
     const url = (payload as { url?: string }).url || Object.values(payload)[0];
     if (typeof url === "string" && (url.includes("^XA") || url.trim().startsWith("^XA"))) {
-      return url;
+      raw = url;
+    } else if (typeof url === "string" && !/^https?:\/\//i.test(url)) {
+      raw = url;
     }
-    if (typeof url === "string" && !/^https?:\/\//i.test(url)) return url;
   }
-  throw new Error("Não foi possível obter o ZPL da etiqueta.");
+  if (!raw) throw new Error("Não foi possível obter o ZPL da etiqueta.");
+  // Só a etiqueta de frete — sem declaração/recibo (como desmarcar no PDF do ME)
+  return extractShippingLabelZpl(raw);
 }
 
 /** Tenta baixar ZPL com novas tentativas (ME as vezes demora a liberar apos generate). */

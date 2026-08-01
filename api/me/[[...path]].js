@@ -43,6 +43,38 @@ async function resolveZplContent(payload) {
   throw new Error("Resposta ZPL do Melhor Envio em formato inesperado.");
 }
 
+const EXTRA_DOC_RE =
+  /declara[cç][aã]o\s+de\s+conte[uú]do|\bdace\b|\bdce\b|aviso\s+de\s+recebimento|\bcanhoto\b|lista\s+de\s+postagem|documento\s+auxiliar/i;
+
+/** Só a etiqueta de frete (como desmarcar declaração/recibo no PDF do ME). */
+function extractShippingLabelZpl(zpl) {
+  const text = String(zpl || "").replace(/^\uFEFF/, "").trim();
+  if (!text) return text;
+  const parts = [];
+  const re = /\^XA[\s\S]*?\^XZ/gi;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const block = match[0].trim();
+    if (block) parts.push(block);
+  }
+  if (!parts.length) return text;
+  if (parts.length === 1) return parts[0];
+
+  const usable = parts.filter((l) => !EXTRA_DOC_RE.test(l));
+  const pool = usable.length ? usable : parts;
+  pool.sort((a, b) => {
+    const score = (l) => {
+      let s = 0;
+      if (/jadlog|correios|melhor\s*envio|\bORD-|\bPAK\b/i.test(l)) s += 3;
+      if (/\^BC|\^BY|\^BQ/i.test(l)) s += 2;
+      if (EXTRA_DOC_RE.test(l)) s -= 10;
+      return s;
+    };
+    return score(b) - score(a);
+  });
+  return pool[0];
+}
+
 /**
  * Unified Melhor Envio API handler for Vercel and local server.
  * Routes:
@@ -198,7 +230,8 @@ export default async function handler(req, res) {
 
       const file = await meFetch(`/api/v2/me/imprimir/zpl/${id}`, { token });
       // ME costuma devolver URL S3; baixar no servidor evita CORS ("Load failed" no Safari)
-      const zpl = await resolveZplContent(file);
+      const raw = await resolveZplContent(file);
+      const zpl = extractShippingLabelZpl(raw);
       sendJson(res, 200, { ok: true, data: zpl });
       return;
     }
