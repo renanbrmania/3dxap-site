@@ -470,7 +470,7 @@ export function ShippingPanel({ quote, shipping, onChange, onStatus }: Props) {
               type="file"
               accept=".xml,text/xml,application/xml"
               onChange={(e) => handleXml(e.target.files)}
-              className="mt-1 block w-full text-sm"
+              className="mt-1 block w-full cursor-pointer text-sm text-olive file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-olive file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:file:opacity-90"
             />
           </label>
         </div>
