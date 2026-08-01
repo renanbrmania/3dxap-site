@@ -29,37 +29,47 @@ for /f "delims=" %%i in ('node -v 2^>nul') do set NODEVER=%%i
 echo  [OK] Node.js encontrado: %NODEVER%
 echo.
 
-REM Atalho na pasta Inicializar do Windows (liga com o PC)
-set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
-set "VBS=%CD%\iniciar-agent-silent.vbs"
-set "LNK=%STARTUP%\3DXAP-Printer-Agent.lnk"
-
-if not exist "%VBS%" (
+if not exist "%CD%\iniciar-agent-silent.vbs" (
   echo  [ERRO] Falta o arquivo iniciar-agent-silent.vbs nesta pasta.
   pause
   exit /b 1
 )
 
-echo  Criando atalho para iniciar com o Windows...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$s = New-Object -ComObject WScript.Shell; $l = $s.CreateShortcut('%LNK:\=\\%'); $l.TargetPath = 'wscript.exe'; $l.Arguments = '\"%VBS:\=\\%\"'; $l.WorkingDirectory = '%CD:\=\\%'; $l.WindowStyle = 7; $l.Description = '3DXAP Printer Agent - Elgin'; $l.Save()"
+set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "LNK=%STARTUP%\3DXAP-Printer-Agent.lnk"
+set "PS1=%TEMP%\3dxap-create-shortcut.ps1"
 
+echo  Criando atalho para iniciar com o Windows...
+
+> "%PS1%" echo $shell = New-Object -ComObject WScript.Shell
+>> "%PS1%" echo $lnkPath = $env:APPDATA + '\Microsoft\Windows\Start Menu\Programs\Startup\3DXAP-Printer-Agent.lnk'
+>> "%PS1%" echo $folder = '%CD%'
+>> "%PS1%" echo $vbs = Join-Path $folder 'iniciar-agent-silent.vbs'
+>> "%PS1%" echo $s = $shell.CreateShortcut($lnkPath)
+>> "%PS1%" echo $s.TargetPath = 'wscript.exe'
+>> "%PS1%" echo $s.Arguments = '"' + $vbs + '"'
+>> "%PS1%" echo $s.WorkingDirectory = $folder
+>> "%PS1%" echo $s.WindowStyle = 7
+>> "%PS1%" echo $s.Description = '3DXAP Printer Agent - Elgin'
+>> "%PS1%" echo $s.Save()
+>> "%PS1%" echo Write-Host 'OK'
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%"
 if errorlevel 1 (
   echo  [AVISO] Nao consegui criar o atalho automatico.
   echo  Voce ainda pode usar iniciar-agent.bat manualmente.
 ) else (
   echo  [OK] Vai iniciar sozinho quando o Windows ligar.
-  echo       Atalho: %LNK%
 )
 
 echo.
 echo  Iniciando o agent agora...
-start "" wscript.exe "%VBS%"
-timeout /t 2 /nobreak >nul
+start "" wscript.exe "%CD%\iniciar-agent-silent.vbs"
+timeout /t 3 /nobreak >nul
 
-powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri 'http://127.0.0.1:9109/health' -UseBasicParsing -TimeoutSec 3).Content; exit 0 } catch { exit 1 }"
+powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri 'http://127.0.0.1:9109/health' -UseBasicParsing -TimeoutSec 4).StatusCode; exit 0 } catch { exit 1 }" >nul 2>&1
 if errorlevel 1 (
-  echo  [AVISO] Agent pode estar subindo ainda. Espere 5s e teste no admin.
+  echo  [AVISO] Agent pode estar subindo ainda. Espere alguns segundos e teste no admin.
 ) else (
   echo  [OK] Agent respondendo em http://127.0.0.1:9109
 )
@@ -69,10 +79,10 @@ echo  ========================================
 echo   Pronto!
 echo  ========================================
 echo.
-echo  No site: admin -^> Impressao -^> Testar / imprimir
+echo  No site: admin ^> Impressao ^> imprimir
 echo  Mesma rede Wi-Fi da Elgin.
 echo.
-echo  Para parar o agent: Gerenciador de Tarefas -^> finalizar "Node.js"
-echo  Para desligar o inicio automatico: rode remover-inicio-windows.bat
+echo  Para ver erros: use iniciar-agent.bat
+echo  Para tirar do inicio automatico: remover-inicio-windows.bat
 echo.
 pause
