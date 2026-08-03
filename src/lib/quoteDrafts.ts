@@ -127,6 +127,7 @@ export function reuseQuoteForNewClient(source: QuoteData): QuoteData {
     .map((item) => ({
       ...item,
       id: crypto.randomUUID(),
+      descontoPercent: item.descontoPercent ?? 0,
     }));
 
   return {

@@ -82,6 +82,7 @@ function handleQuoteFieldKeyDown(
 
 export function QuoteBuilder({ onStatus }: Props) {
   const [drafts, setDrafts] = useState<QuoteDraft[]>(() => listQuoteDrafts());
+  const [draftsOpen, setDraftsOpen] = useState(false);
   const [library, setLibrary] = useState<QuoteLibraryItem[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(true);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -228,12 +229,17 @@ export function QuoteBuilder({ onStatus }: Props) {
 
   function openLibraryItem(item: QuoteLibraryItem) {
     skipAutoSave.current = true;
-    const created = createQuoteDraft(structuredClone(item.data));
-    setDraftId(created.id);
+    // Reabre o mesmo id (já finalizado) — não cria outro rascunho em "Em andamento"
+    setDraftId(item.id);
     setQuote(structuredClone(item.data));
-    setShipping(emptyShippingState());
+    const existing = listQuoteDrafts().find((d) => d.id === item.id);
+    setShipping(
+      existing?.shipping
+        ? structuredClone(existing.shipping)
+        : emptyShippingState(),
+    );
     setDirty(false);
-    setLastSavedAt(created.updatedAt);
+    setLastSavedAt(existing?.updatedAt ?? item.updatedAt);
     refreshDrafts();
     onStatus?.(`Biblioteca: aberto "${item.cliente || item.numero}".`);
     window.setTimeout(() => {
@@ -303,18 +309,30 @@ export function QuoteBuilder({ onStatus }: Props) {
   return (
     <div className="space-y-6">
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setDraftsOpen((v) => !v)}
+            className="min-w-0 flex-1 rounded-2xl text-left outline-none transition hover:bg-cream/60 focus-visible:ring-2 focus-visible:ring-rosa/30"
+            aria-expanded={draftsOpen}
+          >
             <h2 className="font-display text-2xl font-semibold text-ink">
+              <span className="mr-2 inline-block text-muted" aria-hidden>
+                {draftsOpen ? "▾" : "▸"}
+              </span>
               Em andamento
               {openDrafts.length > 0 ? (
                 <span className="ml-2 text-lg font-medium text-muted">({openDrafts.length})</span>
               ) : null}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Orçamentos ainda abertos. Salva sozinho neste navegador para continuar depois.
+              {draftsOpen
+                ? "Orçamentos ainda abertos. Salva sozinho neste navegador para continuar depois."
+                : openDrafts.length > 0
+                  ? "Clique para ver os rascunhos abertos."
+                  : "Nenhum rascunho aberto. Clique para expandir."}
             </p>
-          </div>
+          </button>
           <button
             type="button"
             onClick={startNew}
@@ -324,25 +342,29 @@ export function QuoteBuilder({ onStatus }: Props) {
           </button>
         </div>
 
-        {openDrafts.length === 0 ? (
-          <p className="rounded-2xl bg-cream/80 px-4 py-3 text-sm text-muted ring-1 ring-rosa/10">
-            Nenhum rascunho em andamento. Preencha o formulário abaixo ou reutilize um da
-            biblioteca.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {openDrafts.map((draft) => (
-              <DraftRow
-                key={draft.id}
-                draft={draft}
-                active={draft.id === draftId}
-                mode="draft"
-                onOpen={() => openDraft(draft)}
-                onDelete={() => handleDeleteDraft(draft.id)}
-              />
-            ))}
+        {draftsOpen ? (
+          <div className="mt-4">
+            {openDrafts.length === 0 ? (
+              <p className="rounded-2xl bg-cream/80 px-4 py-3 text-sm text-muted ring-1 ring-rosa/10">
+                Nenhum rascunho em andamento. Preencha o formulário abaixo ou reutilize um da
+                biblioteca.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {openDrafts.map((draft) => (
+                  <DraftRow
+                    key={draft.id}
+                    draft={draft}
+                    active={draft.id === draftId}
+                    mode="draft"
+                    onOpen={() => openDraft(draft)}
+                    onDelete={() => handleDeleteDraft(draft.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-rosa/10 sm:p-6">
@@ -562,7 +584,7 @@ export function QuoteBuilder({ onStatus }: Props) {
                     className="mt-1 w-full rounded-xl border border-rosa/15 bg-white px-3 py-2.5 outline-none focus:border-rosa"
                   />
                 </label>
-                <label className="block text-sm font-medium sm:col-span-2 lg:col-span-4">
+                <label className="block text-sm font-medium sm:col-span-2 lg:col-span-3">
                   Descrição
                   <input
                     value={item.descricao}
@@ -611,10 +633,37 @@ export function QuoteBuilder({ onStatus }: Props) {
                     className="mt-1 w-full rounded-xl border border-rosa/15 bg-white px-3 py-2.5 outline-none focus:border-rosa"
                   />
                 </label>
+                <label className="block text-sm font-medium lg:col-span-1">
+                  Desc. %
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={item.descontoPercent ?? 0}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      const descontoPercent = Number.isFinite(n)
+                        ? Math.min(100, Math.max(0, n))
+                        : 0;
+                      setField(
+                        "itens",
+                        updateItem(quote.itens, item.id, { descontoPercent }),
+                      );
+                    }}
+                    className="mt-1 w-full rounded-xl border border-rosa/15 bg-white px-2 py-2.5 text-center outline-none focus:border-rosa"
+                    title="Desconto % sobre o total da linha"
+                  />
+                </label>
                 <div className="lg:col-span-2">
                   <p className="text-sm font-medium">Total</p>
                   <p className="mt-2 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-rosa-deep ring-1 ring-rosa/10">
                     {formatBRL(lineTotal(item))}
+                    {(item.descontoPercent ?? 0) > 0 ? (
+                      <span className="mt-0.5 block text-[11px] font-medium text-muted">
+                        −{item.descontoPercent}%
+                      </span>
+                    ) : null}
                   </p>
                 </div>
               </div>
@@ -647,6 +696,7 @@ export function QuoteBuilder({ onStatus }: Props) {
                 <th className="px-3 py-2 font-semibold">Descrição</th>
                 <th className="px-3 py-2 text-center font-semibold">Qtd</th>
                 <th className="px-3 py-2 text-right font-semibold">Unit.</th>
+                <th className="px-3 py-2 text-center font-semibold">Desc.</th>
                 <th className="px-3 py-2 text-right font-semibold">Total</th>
               </tr>
             </thead>
@@ -657,6 +707,9 @@ export function QuoteBuilder({ onStatus }: Props) {
                   <td className="px-3 py-2 text-muted">{item.descricao || "—"}</td>
                   <td className="px-3 py-2 text-center">{item.quantidade}</td>
                   <td className="px-3 py-2 text-right">{formatBRL(item.valorUnitario)}</td>
+                  <td className="px-3 py-2 text-center text-muted">
+                    {(item.descontoPercent ?? 0) > 0 ? `${item.descontoPercent}%` : "—"}
+                  </td>
                   <td className="px-3 py-2 text-right font-semibold">{formatBRL(lineTotal(item))}</td>
                 </tr>
               ))}

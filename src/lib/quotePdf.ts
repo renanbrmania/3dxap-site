@@ -4,6 +4,8 @@ export type QuoteItem = {
   descricao: string;
   quantidade: number;
   valorUnitario: number;
+  /** Desconto % aplicado sobre (qtd × unitário). 0–100. */
+  descontoPercent?: number;
 };
 
 export type QuoteData = {
@@ -65,6 +67,7 @@ export function emptyQuoteItem(): QuoteItem {
     descricao: "",
     quantidade: 1,
     valorUnitario: 0,
+    descontoPercent: 0,
   };
 }
 
@@ -83,8 +86,23 @@ export function createDefaultQuote(): QuoteData {
   };
 }
 
-export function lineTotal(item: QuoteItem): number {
+/** Normaliza % de desconto (0–100). */
+export function itemDiscountPercent(item: QuoteItem): number {
+  const n = Number(item.descontoPercent);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(100, n);
+}
+
+export function lineSubtotal(item: QuoteItem): number {
   return (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0);
+}
+
+/** Total da linha após desconto % sobre (qtd × unitário). */
+export function lineTotal(item: QuoteItem): number {
+  const sub = lineSubtotal(item);
+  const disc = itemDiscountPercent(item);
+  if (disc <= 0) return sub;
+  return Math.round(sub * (1 - disc / 100) * 100) / 100;
 }
 
 export function quoteTotal(items: QuoteItem[]): number {
@@ -111,17 +129,24 @@ function slugifyClient(cliente: string): string {
 
 export function buildQuoteHtml(data: QuoteData, logoUrl: string): string {
   const total = quoteTotal(data.itens);
+  const showDiscount = data.itens.some((i) => itemDiscountPercent(i) > 0);
   const rows = data.itens
-    .map(
-      (item) => `
+    .map((item) => {
+      const disc = itemDiscountPercent(item);
+      return `
       <tr>
         <td class="item">${escapeHtml(item.nome || "—")}</td>
         <td class="desc">${escapeHtml(item.descricao || "—")}</td>
         <td class="num">${escapeHtml(String(item.quantidade || 0).padStart(2, "0"))}</td>
         <td class="money">${escapeHtml(formatBRL(item.valorUnitario || 0))}</td>
+        ${
+          showDiscount
+            ? `<td class="num">${disc > 0 ? `${escapeHtml(String(disc))}%` : "—"}</td>`
+            : ""
+        }
         <td class="money">${escapeHtml(formatBRL(lineTotal(item)))}</td>
-      </tr>`,
-    )
+      </tr>`;
+    })
     .join("");
 
   return `<!DOCTYPE html>
@@ -411,6 +436,7 @@ export function buildQuoteHtml(data: QuoteData, logoUrl: string): string {
           <th>Descrição</th>
           <th class="num">Qtd</th>
           <th class="money">Valor unit.</th>
+          ${showDiscount ? `<th class="num">Desc.</th>` : ""}
           <th class="money">Total</th>
         </tr>
       </thead>
